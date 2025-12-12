@@ -7,23 +7,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getFormatInfo, SUPPORTED_FORMATS } from "@/lib/types";
+import { ConvertibleFile } from "@/lib/types";
+import { ConverterService } from "@/lib/converters";
 
 interface FormatSelectorProps {
-  sourceFormat: string;
+  file: ConvertibleFile;
   value: string;
   onChange: (format: string) => void;
   disabled?: boolean;
 }
 
 export function FormatSelector({
-  sourceFormat,
+  file,
   value,
   onChange,
   disabled = false,
 }: FormatSelectorProps) {
-  const formatInfo = getFormatInfo(sourceFormat);
-  const availableFormats = formatInfo?.convertTo || [];
+  // Используем ConverterService для получения доступных форматов
+  const availableFormats = ConverterService.getAvailableFormats(file.file);
 
   if (availableFormats.length === 0) {
     return (
@@ -39,14 +40,11 @@ export function FormatSelector({
         <SelectValue placeholder="Формат" />
       </SelectTrigger>
       <SelectContent>
-        {availableFormats.map((format) => {
-          const info = SUPPORTED_FORMATS.find(f => f.extension === format);
-          return (
-            <SelectItem key={format} value={format}>
-              {info?.name || format.toUpperCase()}
-            </SelectItem>
-          );
-        })}
+        {availableFormats.map((format) => (
+          <SelectItem key={format} value={format}>
+            {format.toUpperCase()}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

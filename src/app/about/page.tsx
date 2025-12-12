@@ -17,21 +17,20 @@ export default function AboutPage() {
             {/* Salpa illustration */}
             <div className="flex-shrink-0">
               <div className="flex h-48 w-48 items-center justify-center rounded-full bg-primary/10">
-                <SalpaLogo size="lg" showText={false} />
+                <div className="scale-[2.5]">
+                  <SalpaLogo size="lg" showText={false} />
+                </div>
               </div>
             </div>
 
             {/* Text content */}
             <div className="text-center md:text-left">
               <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-                Как сальпа фильтрует воду,
-                <br />
-                <span className="text-primary">Salpa конвертирует файлы</span>
+                <span className="text-primary">Salpa</span> — быстрый и приватный конвертер файлов
               </h1>
               <p className="max-w-2xl text-lg text-muted-foreground">
-                Salpa — это браузерный конвертер файлов, вдохновлённый морским существом,
-                которое фильтрует воду с невероятной эффективностью. Мы применяем тот же
-                принцип к конвертации файлов: быстро, чисто и без следа.
+                Конвертация изображений, аудио, видео и текста происходит локально в вашем браузере —
+                без загрузки на сервер, без регистрации и без следов. Просто добавьте файл и получите результат.
               </p>
             </div>
           </div>
@@ -170,7 +169,7 @@ export default function AboutPage() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button variant="secondary" size="lg" asChild>
               <a
-                href="https://github.com/salpa-converter"
+                href="https://github.com/kweharmony/salpa"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -178,7 +177,12 @@ export default function AboutPage() {
                 Посмотреть на GitHub
               </a>
             </Button>
-            <Button variant="outline" size="lg" asChild className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+            <Button
+              variant="outline"
+              size="lg"
+              asChild
+              className="bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+            >
               <Link href="/">
                 Попробовать Salpa
               </Link>

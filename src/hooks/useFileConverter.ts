@@ -5,21 +5,43 @@ import {
   ConvertibleFile,
   generateId,
   getFileExtension,
-  getFormatInfo,
 } from "@/lib/types";
+import { ConverterService } from "@/lib/converters";
+
+export interface LongVideoInfo {
+  fileName: string;
+  duration: string;
+  fileId: string;
+}
+
+export interface LongMediaInfo extends LongVideoInfo {
+  kind: "video" | "audio";
+}
+
+export type ConvertAllResult = "no-files" | "needs-confirm" | "converted";
 
 export function useFileConverter() {
   const [files, setFiles] = useState<ConvertibleFile[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [longMediaWarning, setLongMediaWarning] = useState<LongMediaInfo | null>(null);
 
   const addFiles = useCallback((newFiles: File[]) => {
-    const convertibleFiles: ConvertibleFile[] = newFiles.map((file) => {
-      const extension = getFileExtension(file.name);
-      const formatInfo = getFormatInfo(extension);
-      const defaultTarget = formatInfo?.convertTo[0] || "";
+    const convertibleFiles: ConvertibleFile[] = [];
 
-      return {
+    for (const file of newFiles) {
+      // Валидация файла
+      const validation = ConverterService.validate(file);
+      if (!validation.valid) {
+        console.warn(`Файл ${file.name} пропущен: ${validation.error}`);
+        continue;
+      }
+
+      const extension = getFileExtension(file.name);
+      const availableFormats = ConverterService.getAvailableFormats(file);
+      const defaultTarget = availableFormats[0] || "";
+
+      convertibleFiles.push({
         id: generateId(),
         file,
         name: file.name,
@@ -29,8 +51,8 @@ export function useFileConverter() {
         targetFormat: defaultTarget,
         status: "pending" as const,
         progress: 0,
-      };
-    });
+      });
+    }
 
     setFiles((prev) => [...prev, ...convertibleFiles]);
   }, []);
@@ -63,35 +85,27 @@ export function useFileConverter() {
     setOverallProgress(0);
   }, [files]);
 
-  // Simulated conversion (in real app, would use Web Workers)
-  const convertFile = useCallback(async (file: ConvertibleFile): Promise<Blob> => {
-    // Simulate conversion progress
-    return new Promise((resolve) => {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 20;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(interval);
+  // Реальная конвертация с использованием ConverterService
+  const convertFile = useCallback(async (file: ConvertibleFile): Promise<{ blob: Blob; filename: string }> => {
+    const onProgress = (progress: number) => {
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === file.id ? { ...f, progress } : f
+        )
+      );
+    };
 
-          // Create a mock converted blob
-          // In real implementation, actual conversion would happen here
-          const mockBlob = new Blob([`Converted content of ${file.name}`], {
-            type: `application/${file.targetFormat}`,
-          });
-          resolve(mockBlob);
-        }
+    const result = await ConverterService.convert(
+      file.file,
+      file.targetFormat,
+      onProgress
+    );
 
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, progress: Math.min(progress, 100) } : f
-          )
-        );
-      }, 100);
-    });
+    return { blob: result.blob, filename: result.filename };
   }, []);
 
-  const convertAll = useCallback(async () => {
+  // Выполнить конвертацию (внутренняя функция)
+  const executeConversion = useCallback(async () => {
     const pendingFiles = files.filter((f) => f.status === "pending");
     if (pendingFiles.length === 0) return;
 
@@ -102,7 +116,7 @@ export function useFileConverter() {
     let completedCount = 0;
 
     for (const file of pendingFiles) {
-      // Set file status to converting
+      // Устанавливаем статус "converting"
       setFiles((prev) =>
         prev.map((f) =>
           f.id === file.id ? { ...f, status: "converting" as const, progress: 0 } : f
@@ -110,10 +124,10 @@ export function useFileConverter() {
       );
 
       try {
-        const result = await convertFile(file);
-        const resultUrl = URL.createObjectURL(result);
+        const { blob, filename } = await convertFile(file);
+        const resultUrl = URL.createObjectURL(blob);
 
-        // Set file status to completed
+        // Устанавливаем статус "completed"
         setFiles((prev) =>
           prev.map((f) =>
             f.id === file.id
@@ -121,14 +135,15 @@ export function useFileConverter() {
                   ...f,
                   status: "completed" as const,
                   progress: 100,
-                  result,
+                  result: blob,
                   resultUrl,
+                  resultFilename: filename,
                 }
               : f
           )
         );
       } catch (error) {
-        // Set file status to error
+        // Устанавливаем статус "error"
         setFiles((prev) =>
           prev.map((f) =>
             f.id === file.id
@@ -149,48 +164,104 @@ export function useFileConverter() {
     setIsConverting(false);
   }, [files, convertFile]);
 
+  // Проверка на длинные видео и запуск конвертации
+  const convertAll = useCallback(async (): Promise<ConvertAllResult> => {
+    const pendingFiles = files.filter((f) => f.status === "pending");
+    if (pendingFiles.length === 0) return "no-files";
+
+    // Проверяем наличие длинных медиа (видео/аудио)
+    for (const file of pendingFiles) {
+      const category = ConverterService.getCategory(file.file);
+
+      if (category === "video") {
+        const isLong = await ConverterService.isLongVideo(file.file);
+        if (isLong) {
+          const duration = await ConverterService.getDuration(file.file);
+          setLongMediaWarning({
+            kind: "video",
+            fileName: file.name,
+            duration: duration ? ConverterService.formatDuration(duration) : ">3:00",
+            fileId: file.id,
+          });
+          return "needs-confirm";
+        }
+      }
+
+      if (category === "audio") {
+        const isLong = await ConverterService.isLongAudio(file.file);
+        if (isLong) {
+          const duration = await ConverterService.getDuration(file.file);
+          setLongMediaWarning({
+            kind: "audio",
+            fileName: file.name,
+            duration: duration ? ConverterService.formatDuration(duration) : ">3:00",
+            fileId: file.id,
+          });
+          return "needs-confirm";
+        }
+      }
+    }
+
+    await executeConversion();
+    return "converted";
+  }, [files, executeConversion]);
+
+  // Подтверждение конвертации длинного видео
+  const confirmLongMediaConversion = useCallback(async () => {
+    setLongMediaWarning(null);
+    await executeConversion();
+  }, [executeConversion]);
+
+  // Отмена конвертации длинного видео
+  const cancelLongMediaConversion = useCallback(() => {
+    setLongMediaWarning(null);
+  }, []);
+
   const downloadFile = useCallback((id: string) => {
     const file = files.find((f) => f.id === id);
-    if (!file?.resultUrl) return;
+    if (!file?.result || !file?.resultUrl) return;
 
-    const link = document.createElement("a");
-    link.href = file.resultUrl;
-    link.download = file.name.replace(
+    const filename = file.resultFilename || file.name.replace(
       `.${file.sourceFormat}`,
       `.${file.targetFormat}`
     );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    ConverterService.download(file.result, filename);
   }, [files]);
 
   const downloadAll = useCallback(() => {
-    const completedFiles = files.filter((f) => f.status === "completed");
+    const completedFiles = files.filter((f) => f.status === "completed" && f.result);
+
     completedFiles.forEach((file) => {
-      if (file.resultUrl) {
-        const link = document.createElement("a");
-        link.href = file.resultUrl;
-        link.download = file.name.replace(
+      if (file.result) {
+        const filename = file.resultFilename || file.name.replace(
           `.${file.sourceFormat}`,
           `.${file.targetFormat}`
         );
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        ConverterService.download(file.result, filename);
       }
     });
   }, [files]);
+
+  // Получение доступных форматов для файла
+  const getAvailableFormats = useCallback((file: ConvertibleFile): string[] => {
+    return ConverterService.getAvailableFormats(file.file);
+  }, []);
 
   return {
     files,
     isConverting,
     overallProgress,
+    longMediaWarning,
     addFiles,
     removeFile,
     updateFileFormat,
     clearAll,
     convertAll,
+    confirmLongMediaConversion,
+    cancelLongMediaConversion,
     downloadFile,
     downloadAll,
+    getAvailableFormats,
   };
 }

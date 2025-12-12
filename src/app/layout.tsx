@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Salpa - Браузерный конвертер файлов",
+  title: "Salpa",
   description: "Конвертируйте файлы локально в браузере. Приватность, скорость, простота. Без загрузки на сервер.",
   keywords: ["конвертер файлов", "браузерный конвертер", "конвертация изображений", "конвертация документов", "приватность"],
 };
@@ -27,7 +27,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
-        <Toaster position="bottom-right" />
+        <Toaster position="bottom-right" visibleToasts={3} expand closeButton />
       </body>
     </html>
   );

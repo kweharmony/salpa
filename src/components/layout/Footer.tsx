@@ -11,7 +11,10 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           {/* Logo and description */}
           <div className="flex flex-col items-center gap-2 md:items-start">
-            <SalpaLogo size="sm" />
+            <Link href="/" className="flex items-center gap-0">
+              <SalpaLogo size="sm" showText={false} />
+              <span className="text-lg font-bold text-primary">alpa</span>
+            </Link>
             <p className="text-sm text-muted-foreground">
               Конвертируйте файлы локально в браузере
             </p>
@@ -41,7 +44,7 @@ export function Footer() {
 
           {/* GitHub */}
           <a
-            href="https://github.com/salpa-converter"
+            href="https://github.com/kweharmony/salpa"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm text-muted-foreground transition-colors duration-150 hover:text-primary"
@@ -54,7 +57,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 md:flex-row">
           <p className="text-xs text-muted-foreground">
-            2025 Salpa. Open Source проект.
+            {new Date().getFullYear()} Salpa. Open Source проект.
           </p>
           <p className="text-xs text-muted-foreground">
             Версия 1.0.0

@@ -4,6 +4,8 @@ import { Shield, Zap, MousePointerClick } from "lucide-react";
 import { FileDropzone } from "@/components/features/FileDropzone";
 import { FileList } from "@/components/features/FileList";
 import { ConversionPanel } from "@/components/features/ConversionPanel";
+import { LongVideoWarning } from "@/components/features/LongVideoWarning";
+import { LongAudioWarning } from "@/components/features/LongAudioWarning";
 import { useFileConverter } from "@/hooks/useFileConverter";
 import { toast } from "sonner";
 
@@ -12,33 +14,75 @@ export default function Home() {
     files,
     isConverting,
     overallProgress,
+    longMediaWarning,
     addFiles,
     removeFile,
     updateFileFormat,
     clearAll,
     convertAll,
+    confirmLongMediaConversion,
+    cancelLongMediaConversion,
     downloadFile,
     downloadAll,
   } = useFileConverter();
 
   const handleFilesAdded = (newFiles: File[]) => {
     addFiles(newFiles);
-    toast.success(`${newFiles.length} файл${newFiles.length > 1 ? "ов" : ""} добавлен${newFiles.length > 1 ? "о" : ""}`);
+    toast.success(
+      `${newFiles.length} файл${newFiles.length > 1 ? "ов" : ""} добавлен${newFiles.length > 1 ? "о" : ""}`,
+      { id: "files-added" }
+    );
   };
 
   const handleConvertAll = async () => {
-    toast.info("Начинаем конвертацию...");
-    await convertAll();
-    toast.success("Конвертация завершена!");
+    toast.loading("Конвертация...", { id: "convert" });
+    const result = await convertAll();
+
+    if (result === "needs-confirm") {
+      toast.info("Обнаружен длинный файл — требуется подтверждение.", { id: "convert" });
+      return;
+    }
+
+    if (result === "converted") {
+      toast.success("Конвертация завершена!", { id: "convert" });
+      return;
+    }
+
+    toast.info("Нет файлов для конвертации", { id: "convert" });
+  };
+
+  const handleConfirmLongMedia = async () => {
+    toast.loading("Конвертация...", { id: "convert" });
+    await confirmLongMediaConversion();
+    toast.success("Конвертация завершена!", { id: "convert" });
   };
 
   const handleClearAll = () => {
     clearAll();
-    toast.info("Список очищен");
+    toast.info("Список очищен", { id: "clear" });
   };
 
   return (
     <div className="flex flex-col">
+      {/* Long Media Warning Modal */}
+      {longMediaWarning?.kind === "video" && (
+        <LongVideoWarning
+          fileName={longMediaWarning.fileName}
+          duration={longMediaWarning.duration}
+          onConfirm={handleConfirmLongMedia}
+          onCancel={cancelLongMediaConversion}
+        />
+      )}
+
+      {longMediaWarning?.kind === "audio" && (
+        <LongAudioWarning
+          fileName={longMediaWarning.fileName}
+          duration={longMediaWarning.duration}
+          onConfirm={handleConfirmLongMedia}
+          onCancel={cancelLongMediaConversion}
+        />
+      )}
+
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-12 md:py-16">
         <div className="mx-auto max-w-[1200px] px-6 text-center">

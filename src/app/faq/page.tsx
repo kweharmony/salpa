@@ -86,6 +86,9 @@ export default function FAQPage() {
                 variant={selectedCategory === category.id ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category.id)}
+                className={cn(
+                  selectedCategory !== category.id && "hover:bg-primary/10 hover:text-primary hover:border-primary/50"
+                )}
               >
                 {category.name}
               </Button>
@@ -121,7 +124,7 @@ export default function FAQPage() {
                         <AccordionItem
                           key={item.id}
                           value={item.id}
-                          className="rounded-lg border border-border bg-card px-4"
+                          className="rounded-lg border border-border bg-card px-4 last:border-b"
                         >
                           <AccordionTrigger className="text-left hover:no-underline">
                             <span className="font-medium">{item.question}</span>
@@ -152,7 +155,7 @@ export default function FAQPage() {
           </p>
           <Button variant="default" size="lg" asChild>
             <a
-              href="https://github.com/salpa-converter/issues"
+              href="https://github.com/kweharmony/salpa/issues"
               target="_blank"
               rel="noopener noreferrer"
             >

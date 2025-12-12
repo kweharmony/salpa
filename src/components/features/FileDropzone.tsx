@@ -88,7 +88,7 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
         className="sr-only"
         onChange={handleFileInput}
         disabled={disabled}
-        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.md,.csv"
+        accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,image/x-icon,image/tiff,.ico,.tiff,.tif,.avif,.txt,.md,.csv,.json,.html,.xml,.yaml,.yml,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/flac,audio/aac,.mp3,.wav,.ogg,.flac,.aac,.m4a,.wma,video/mp4,video/webm,video/x-msvideo,video/quicktime,image/gif,.mp4,.webm,.avi,.mov,.mkv,.gif,.flv,.wmv,.3gp"
       />
 
       <div className={cn(
@@ -108,7 +108,7 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
           : "Перетащите файлы или нажмите для выбора"}
       </p>
       <p className="text-sm text-muted-foreground">
-        Поддерживаются изображения, документы, аудио и видео
+        Изображения, документы, аудио и видео файлы
       </p>
     </div>
   );

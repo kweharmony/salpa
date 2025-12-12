@@ -84,16 +84,25 @@ export function FileRow({ file, onRemove, onFormatChange, onDownload }: FileRowP
         </div>
       </div>
 
-      {/* Format selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">в</span>
-        <FormatSelector
-          sourceFormat={file.sourceFormat}
-          value={file.targetFormat}
-          onChange={(format) => onFormatChange(file.id, format)}
-          disabled={file.status === "converting"}
-        />
-      </div>
+      {/* Format selector (hidden after conversion) */}
+      {file.status !== "completed" && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">в</span>
+          <FormatSelector
+            file={file}
+            value={file.targetFormat}
+            onChange={(format) => onFormatChange(file.id, format)}
+            disabled={file.status === "converting"}
+          />
+        </div>
+      )}
+
+      {/* Target format badge (shown after conversion) */}
+      {file.status === "completed" && (
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="uppercase">{file.targetFormat}</Badge>
+        </div>
+      )}
 
       {/* Status */}
       <div className="flex items-center gap-3">
