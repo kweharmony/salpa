@@ -1,0 +1,232 @@
+export const locales = { ru: "Русский", en: "English", "zh-Hans": "简体中文" } as const;
+export type Locale = keyof typeof locales;
+export type Translation = readonly [russian: string, english: string, chinese: string];
+export type MessageParams = Record<string, string | number>;
+
+const localeIndex = { ru: 0, en: 1, "zh-Hans": 2 } as const;
+
+const messages = {
+  language: ["Язык", "Language", "语言"],
+  about: ["О проекте", "About", "关于"],
+  formats: ["Форматы", "Formats", "格式"],
+  openMenu: ["Открыть меню", "Open menu", "打开菜单"],
+  closeMenu: ["Закрыть меню", "Close menu", "关闭菜单"],
+  homeTitle: ["Конвертируйте файлы локально в браузере", "Convert files locally in your browser", "直接在浏览器中本地转换文件"],
+  homeIntro: ["Изображения, документы, аудио и видео обрабатываются на вашем устройстве.", "Images, documents, audio and video are processed on your device.", "图像、文档、音频和视频都在您的设备上处理。"],
+  noUpload: ["Без загрузки на сервер", "No server uploads", "无需上传到服务器"],
+  batch: ["Пакетная конвертация", "Batch conversion", "批量转换"],
+  noRegistration: ["Без регистрации", "No sign-up", "无需注册"],
+  filesAdded: ["Добавлено файлов — {count}", "Files added: {count}", "已添加 {count} 个文件"],
+  filesSkipped: ["Пропущено файлов — {count}", "Files skipped: {count}", "已跳过 {count} 个文件"],
+  batchStopped: ["Очередь остановлена", "Queue stopped", "队列已停止"],
+  batchSummary: ["Готово {done} · С ошибками {failed}", "{done} complete · {failed} failed", "已完成 {done} 个 · 失败 {failed} 个"],
+  filesReady: ["Готово файлов — {count}", "Files ready: {count}", "已完成 {count} 个文件"],
+  archiveFailed: ["Не удалось создать ZIP. Готовые файлы можно скачать по отдельности.", "Could not create the ZIP. You can download completed files individually.", "无法创建 ZIP，可单独下载已完成的文件。"],
+  settingsApplied: ["Настройки применены · {count}", "Settings applied to {count} files", "设置已应用到 {count} 个文件"],
+  uploadArea: ["Зона для загрузки файлов", "File upload area", "文件选择区域"],
+  dropNow: ["Отпустите файлы", "Drop files here", "请松开文件"],
+  dropOrChoose: ["Перетащите файлы или нажмите для выбора", "Drop files here or click to choose", "将文件拖到这里，或点击选择"],
+  fileTypes: ["Изображения, документы, аудио и видео файлы", "Images, documents, audio and video", "图像、文档、音频和视频"],
+  noFiles: ["Нет загруженных файлов", "No files added", "尚未添加文件"],
+  addFilesHint: ["Начните с загрузки файлов в зону выше", "Add files using the area above", "请在上方区域添加文件"],
+  queue: ["Очередь файлов", "File queue", "文件队列"],
+  pending: ["Ожидание", "Waiting", "等待中"],
+  converting: ["Конвертация", "Converting", "转换中"],
+  ready: ["Готово", "Ready", "已完成"],
+  readyToPrint: ["Готово к печати", "Ready to print", "可打印"],
+  cancelled: ["Отменено", "Canceled", "已取消"],
+  error: ["Ошибка", "Error", "错误"],
+  noReencoding: ["Без перекодирования", "No re-encoding", "未重新编码"],
+  maxSideRow: ["До {size} пикселей по длинной стороне", "Up to {size} px on the longest side", "长边最多 {size} 像素"],
+  to: ["в", "to", "转为"],
+  targetFormat: ["Выходной формат: {name}", "Output format: {name}", "输出格式：{name}"],
+  fileProgress: ["Прогресс: {name}", "Progress: {name}", "进度：{name}"],
+  download: ["Скачать", "Download", "下载"],
+  removeFile: ["Удалить {name}", "Remove {name}", "移除 {name}"],
+  completedCount: ["Готово {done} из {total}", "{done} of {total} complete", "已完成 {done} / {total}"],
+  failedCount: ["С ошибками {count}", "Failed: {count}", "失败 {count} 个"],
+  checkingMedia: ["Проверяем длительность медиафайлов…", "Checking media duration…", "正在检查媒体时长…"],
+  conversionPercent: ["Конвертация · {percent}%", "Converting · {percent}%", "转换中 · {percent}%"],
+  queueProgress: ["Прогресс очереди", "Queue progress", "队列进度"],
+  convert: ["Конвертировать", "Convert", "转换"],
+  retry: ["Повторить ошибки ({count})", "Retry failed ({count})", "重试失败项（{count}）"],
+  stop: ["Остановить очередь", "Stop queue", "停止队列"],
+  zipping: ["Готовим ZIP…", "Creating ZIP…", "正在创建 ZIP…"],
+  downloadZip: ["Скачать готовое ZIP-архивом", "Download completed files as ZIP", "将已完成文件打包下载为 ZIP"],
+  clear: ["Очистить", "Clear", "清空"],
+  batchSettings: ["Пакетные настройки", "Batch settings", "批量设置"],
+  compatibleFormat: ["Формат для совместимых файлов", "Format for compatible files", "兼容文件的输出格式"],
+  preserveFormats: ["Оставить выбранные форматы", "Keep selected formats", "保留已选格式"],
+  outputQuality: ["Качество результата", "Output quality", "输出质量"],
+  smallerFile: ["Меньший файл", "Smaller file", "较小文件"],
+  balanced: ["Баланс", "Balanced", "均衡"],
+  highQuality: ["Высокое качество", "High quality", "高质量"],
+  custom: ["Свои настройки", "Custom settings", "自定义设置"],
+  advanced: ["Расширенные настройки", "Advanced settings", "高级设置"],
+  imageQuality: ["Качество JPG / WebP, %", "JPG / WebP quality, %", "JPG / WebP 质量，%"],
+  longestSide: ["Максимальная сторона, пикс.", "Maximum side, px", "最长边，像素"],
+  originalSize: ["Исходный размер", "Original size", "原始尺寸"],
+  bitrate: ["Битрейт MP3, кбит/с", "MP3 bitrate, kbps", "MP3 比特率，kbps"],
+  videoQuality: ["Качество видео", "Video quality", "视频质量"],
+  tryRemux: ["Попробовать без перекодирования для MP4, MOV и WebM", "Try to copy streams for MP4, MOV and WebM", "尝试直接复制 MP4、MOV 和 WebM 的音视频流"],
+  applySettings: ["Применить к списку", "Apply to list", "应用到列表"],
+  photoPreset: ["Сжать фото для отправки", "Compress photos for sharing", "压缩照片以便发送"],
+  photoPresetHint: ["Пресет сохраняет фото в JPG, до 1920 пикселей по длинной стороне, с качеством 80%.", "This preset saves photos as JPG at 80% quality with a maximum long side of 1920 px.", "此预设将照片保存为 JPG，质量为 80%，长边最多 1920 像素。"],
+  longMedia: ["Длинные медиафайлы", "Long media files", "时长较长的媒体文件"],
+  longMediaHint: ["Обработка этих файлов может занять несколько минут.", "These files may take several minutes to process.", "处理这些文件可能需要几分钟。"],
+  back: ["Назад", "Back", "返回"],
+  continue: ["Продолжить", "Continue", "继续"],
+  printPdf: ["Печать в PDF", "Print to PDF", "打印为 PDF"],
+  printPreview: ["Предпросмотр PDF", "PDF preview", "PDF 预览"],
+  printHint: ["В диалоге печати выберите «Сохранить как PDF».", "Choose “Save as PDF” in the browser’s print dialog.", "请在浏览器的打印对话框中选择“另存为 PDF”。"],
+  close: ["Закрыть", "Close", "关闭"],
+  printAndSave: ["Печать и сохранение", "Print and save", "打印并保存"],
+  documentPages: ["Страницы документа", "Document pages", "文档页面"],
+  offline: ["Офлайн-режим", "Offline mode", "离线模式"],
+  offlineReady: ["Офлайн-режим · готов", "Offline mode · ready", "离线模式 · 已就绪"],
+  offlineHint: ["Сохраните приложение и нужные движки в браузере. Исходные файлы и результаты в офлайн-кэш не попадают.", "Save the app and selected converters in your browser. The offline cache only holds app resources.", "将应用和所选转换器保存在浏览器中。离线缓存只包含应用资源。"],
+  audio: ["Аудио", "Audio", "音频"],
+  video: ["Видео", "Video", "视频"],
+  offlineVideo: ["Видео (около 32 МБ)", "Video (about 32 MB)", "视频（约 32 MB）"],
+  preparingOffline: ["Сохраняем ресурсы…", "Saving resources…", "正在保存资源…"],
+  prepareOffline: ["Подготовить офлайн-режим", "Prepare offline mode", "准备离线模式"],
+  offlineProgress: ["Подготовка офлайн-режима", "Offline setup progress", "离线准备进度"],
+  offlineAvailable: ["Готово к работе без интернета: {items}.", "Ready to use offline: {items}.", "可离线使用：{items}。"],
+  offlineBase: ["изображения и документы", "images and documents", "图像和文档"],
+  offlineAudio: ["аудио", "audio", "音频"],
+  offlineVideoItem: ["видео", "video", "视频"],
+  offlineTimeout: ["Браузер не успел ответить. Проверьте состояние офлайн-режима после перезагрузки.", "The browser took too long to respond. Reload to check the offline status.", "浏览器响应超时，请刷新后检查离线状态。"],
+  offlineStartFailed: ["Браузер не смог включить офлайн-режим.", "The browser could not start offline mode.", "浏览器无法启用离线模式。"],
+  offlineFailed: ["Не удалось подготовить офлайн-режим", "Could not prepare offline mode", "无法准备离线模式"],
+  offlineManifestFailed: ["Список ресурсов недоступен. Проверьте подключение к интернету.", "The resource list is unavailable. Check your connection.", "资源列表不可用，请检查网络连接。"],
+  offlineSaveFailed: ["Не удалось сохранить ресурсы для офлайн-работы.", "Could not save offline resources.", "无法保存离线资源。"],
+  faqLink: ["FAQ", "FAQ", "常见问题"],
+  format: ["Формат", "Format", "格式"],
+  unsupported: ["Формат файла не поддерживается", "File format is unsupported", "不支持此文件格式"],
+  unknownFormat: ["Неизвестный формат", "Unknown format", "未知格式"],
+  emptyFile: ["Файл пуст", "The file is empty", "文件为空"],
+  fileTooLarge: ["Файл слишком большой (максимум {limit} МиБ)", "File is too large (maximum {limit} MiB)", "文件过大（最大 {limit} MiB）"],
+  unsupportedPair: ["Это направление конвертации недоступно", "This conversion is unavailable", "不支持此转换方向"],
+  failedConversion: ["Ошибка конвертации", "Conversion failed", "转换失败"],
+  malformedJson: ["Невалидный JSON", "Invalid JSON", "JSON 格式无效"],
+  malformedYaml: ["Не удалось разобрать YAML или представить его в JSON", "Could not read YAML or convert it to JSON", "无法解析 YAML 或将其转换为 JSON"],
+  malformedCsv: ["Невалидный CSV: проверьте кавычки и количество столбцов", "Invalid CSV: check quotes and the number of columns", "CSV 格式无效，请检查引号和列数"],
+  duplicateCsv: ["Заголовки столбцов CSV должны быть уникальными", "CSV column headers must be unique", "CSV 列标题必须唯一"],
+  imageDecode: ["Не удалось загрузить изображение", "Could not decode the image", "无法解码图像"],
+  heicDecode: ["Не удалось декодировать изображение HEIC/HEIF", "Could not decode the HEIC/HEIF image", "无法解码 HEIC/HEIF 图像"],
+  imageSave: ["Браузер не смог сохранить изображение в выбранном формате", "The browser could not save the image in this format", "浏览器无法以该格式保存图像"],
+  imageCanvas: ["Браузер не смог подготовить область для изображения", "The browser could not initialize the image canvas", "浏览器无法初始化图像画布"],
+  audioDecode: ["Браузер не смог прочитать аудиофайл", "The browser could not decode the audio file", "浏览器无法解码音频文件"],
+  audioStart: ["Не удалось запустить аудиоконвертер", "Could not start the audio converter", "无法启动音频转换器"],
+  audioTransfer: ["Не удалось передать аудио в обработчик", "Could not pass the audio to the converter", "无法将音频传给转换器"],
+  audioEncode: ["Не удалось закодировать аудио", "Could not encode the audio", "无法编码音频"],
+  mp3Load: ["Не удалось загрузить MP3-кодировщик. Проверьте подключение или подготовьте аудио для офлайн-работы.", "Could not load the MP3 encoder. Check your connection or prepare audio for offline use.", "无法加载 MP3 编码器。请检查网络连接，或先准备离线音频转换。"],
+  wavTooLong: ["Аудио слишком длинное для WAV", "The audio is too long for WAV", "音频过长，无法保存为 WAV"],
+  videoLoad: ["Не удалось загрузить видеоконвертер. Проверьте подключение или подготовьте видео для офлайн-работы.", "Could not load the video converter. Check your connection or prepare video for offline use.", "无法加载视频转换器。请检查网络连接，或先准备离线视频转换。"],
+  videoEncode: ["FFmpeg не смог обработать файл или нужную дорожку", "FFmpeg could not process the file or track", "FFmpeg 无法处理该文件或轨道"],
+  outputMissing: ["Конвертер не создал выходной файл", "The converter produced no output file", "转换器未生成输出文件"],
+  docxLoad: ["Не удалось загрузить обработчик DOCX", "Could not load the DOCX converter", "无法加载 DOCX 转换器"],
+  docxInvalid: ["Не удалось прочитать DOCX. Проверьте, что файл открывается в Word.", "Could not read the DOCX. Check that it opens in Word.", "无法读取 DOCX，请确认文件可以在 Word 中打开。"],
+  pdfNoText: ["В PDF нет извлекаемого текста. Для скана выберите PNG или JPG.", "This PDF has no extractable text. For a scan, choose PNG or JPG.", "此 PDF 没有可提取的文本。对于扫描件，请选择 PNG 或 JPG。"],
+  pdfImageSave: ["Не удалось сохранить изображение страницы PDF", "Could not save the PDF page as an image", "无法将 PDF 页面保存为图像"],
+  pdfLocked: ["PDF защищён паролем. Для конвертации нужна разблокированная копия.", "The PDF is password protected. Use an unlocked copy for conversion.", "PDF 受密码保护，请使用已解锁的副本进行转换。"],
+  pdfInvalid: ["Не удалось прочитать PDF. Проверьте, что файл открывается в просмотрщике.", "Could not read the PDF. Check that it opens in a PDF viewer.", "无法读取 PDF，请确认文件可以在 PDF 阅读器中打开。"],
+  pdfPageCount: ["Страниц в ZIP — {count}", "{count} pages in ZIP", "ZIP 包含 {count} 页"],
+  pdfMissingText: ["Без извлечённого текста — {count} из {total} стр.", "No text extracted from {count} of {total} pages.", "共 {total} 页，其中 {count} 页未提取到文本。"],
+  sourceProject: ["{year} Salpa. Проект с открытым исходным кодом.", "{year} Salpa. Open-source project.", "{year} Salpa。开源项目。"],
+  version: ["Версия {value}", "Version {value}", "版本 {value}"],
+  copied: ["{value} скопирован", "Copied {value}", "已复制 {value}"],
+  copyFormat: ["Скопировать {value}", "Copy {value}", "复制 {value}"],
+  allFormats: ["Все форматы", "All formats", "全部格式"],
+  images: ["Изображения", "Images", "图像"],
+  documents: ["Документы", "Documents", "文档"],
+  formatsTitle: ["Поддерживаемые форматы", "Supported formats", "支持的格式"],
+  formatsIntro: ["Полный список форматов, которые можно конвертировать с помощью Salpa. Нажмите на формат, чтобы скопировать его название.", "Browse the formats Salpa can convert. Select a format to copy its name.", "浏览 Salpa 支持转换的格式。点击格式可复制其名称。"],
+  searchFormats: ["Поиск формата…", "Search formats…", "搜索格式…"],
+  formatNotFound: ["Формат не найден", "No formats found", "未找到格式"],
+  changeSearch: ["Попробуйте изменить поисковый запрос или выбрать другую категорию", "Try a different search or choose another category", "请更换搜索词或选择其他类别"],
+  description: ["Описание", "Description", "说明"],
+  convertsTo: ["Конвертируется в", "Converts to", "可转换为"],
+  faqTitle: ["Часто задаваемые вопросы", "Frequently asked questions", "常见问题"],
+  faqIntro: ["Ответы на популярные вопросы о приватности, возможностях и технических деталях работы Salpa.", "Answers about privacy, features and how Salpa works.", "了解 Salpa 的隐私保护、功能和工作方式。"],
+  searchFaq: ["Поиск по вопросам…", "Search questions…", "搜索问题…"],
+  faqNotFound: ["Вопросов не найдено", "No questions found", "未找到相关问题"],
+  faqContactTitle: ["Не нашли ответ?", "Still have a question?", "还有问题？"],
+  faqContactText: ["Задайте вопрос на GitHub или предложите улучшение", "Ask on GitHub or suggest an improvement", "在 GitHub 上提问或建议改进"],
+  issues: ["Открыть GitHub Issues", "Open GitHub Issues", "打开 GitHub Issues"],
+  faqAll: ["Все вопросы", "All questions", "全部问题"],
+  faqPrivacy: ["Приватность", "Privacy", "隐私"],
+  faqLimits: ["Ограничения", "Limits", "限制"],
+  faqCompatibility: ["Совместимость", "Compatibility", "兼容性"],
+  faqTechnical: ["Технические вопросы", "Technical questions", "技术问题"],
+  aboutTitle: ["— быстрый и приватный конвертер файлов", "— a fast, private file converter", "— 快速、保护隐私的文件转换器"],
+  aboutIntro: ["Конвертируйте изображения, документы, аудио и видео на своём устройстве. Добавьте файл, выберите формат и сохраните результат.", "Convert images, documents, audio and video on your device. Add a file, choose a format and save the result.", "在您的设备上转换图像、文档、音频和视频。添加文件，选择格式，然后保存结果。"],
+  aboutFeatures: ["Преимущества", "Why Salpa", "为什么选择 Salpa"],
+  privacyTitle: ["Приватность", "Privacy", "保护隐私"],
+  privacyText: ["Браузер обрабатывает файлы локально. Исходные файлы и результаты остаются на устройстве.", "Your browser processes files locally. Originals and results stay on your device.", "浏览器在本地处理文件，原始文件和结果都保留在您的设备上。"],
+  speedTitle: ["Локальная обработка", "Local processing", "本地处理"],
+  speedText: ["Время зависит от формата, размера файла и производительности устройства.", "Processing time depends on the format, file size and device.", "处理时间取决于格式、文件大小和设备性能。"],
+  simpleTitle: ["Простота", "Easy to use", "简单易用"],
+  simpleText: ["Добавьте один файл или обработайте целую очередь в браузере.", "Add one file or process an entire batch in your browser.", "可以处理单个文件，也可以在浏览器中批量转换。"],
+  howItWorks: ["Как это работает", "How it works", "使用方法"],
+  stepAdd: ["Добавьте файл", "Add a file", "添加文件"],
+  stepAddTip: ["Перетащите файлы или выберите их через диалог.", "Drop files into the upload area or choose them in the file picker.", "拖入文件，或通过文件选择器添加。"],
+  stepFormat: ["Выберите формат", "Choose a format", "选择格式"],
+  stepFormatTip: ["Выберите формат для каждого файла или примените пакетные настройки.", "Pick a format per file or apply batch settings.", "为每个文件选择格式，或应用批量设置。"],
+  stepConvert: ["Запустите конвертацию", "Start converting", "开始转换"],
+  stepConvertTip: ["Прогресс и ошибки отображаются в очереди.", "The queue shows progress and errors.", "队列会显示转换进度和错误。"],
+  stepSave: ["Сохраните результат", "Save the result", "保存结果"],
+  stepSaveTip: ["Скачайте готовые файлы. Для DOCX → PDF используйте печать в браузере.", "Download completed files. Use the browser’s print dialog for DOCX to PDF.", "下载已完成的文件。DOCX 转 PDF 使用浏览器的打印对话框。"],
+  technologies: ["Технологии", "Technology", "技术"],
+  backgroundWork: ["Фоновая обработка", "Background processing", "后台处理"],
+  nativeCode: ["Выполнение движков", "Runs conversion engines", "运行转换引擎"],
+  localStorage: ["Локальное хранение", "Local storage", "本地存储"],
+  inMemory: ["Файлы в памяти вкладки", "Files held in tab memory", "文件保存在标签页内存中"],
+  openSource: ["Открытый исходный код", "Open source", "开源"],
+  openSourceIntro: ["Код Salpa доступен на GitHub. Вы можете сообщить об ошибке, предложить улучшение или помочь с разработкой.", "Salpa’s code is on GitHub. Report a bug, suggest an improvement or contribute to the project.", "Salpa 的源代码托管于 GitHub。欢迎报告问题、提出建议或参与开发。"],
+  github: ["Посмотреть на GitHub", "View on GitHub", "在 GitHub 上查看"],
+  trySalpa: ["Попробовать Salpa", "Try Salpa", "试用 Salpa"],
+  notifications: ["Уведомления", "Notifications", "通知"],
+  closeNotification: ["Закрыть уведомление", "Close notification", "关闭通知"],
+  notFoundPage: ["Страница не найдена", "Page not found", "未找到页面"],
+  goHome: ["На главную", "Back to home", "返回首页"],
+} satisfies Record<string, Translation>;
+
+export type MessageKey = keyof typeof messages;
+export type Translate = (key: MessageKey, params?: MessageParams) => string;
+
+export interface Message {
+  key: MessageKey;
+  params?: MessageParams;
+}
+
+export function isLocale(value: string | null): value is Locale {
+  return value !== null && Object.hasOwn(locales, value);
+}
+
+export function isMessageKey(value: unknown): value is MessageKey {
+  return typeof value === "string" && Object.hasOwn(messages, value);
+}
+
+export function inLocale(locale: Locale, text: Translation): string {
+  return text[localeIndex[locale]];
+}
+
+export function translate(locale: Locale, key: MessageKey, params?: MessageParams): string {
+  return inLocale(locale, messages[key]).replace(/\{(\w+)\}/g, (match, name: string) =>
+    params && Object.hasOwn(params, name) ? String(params[name]) : match,
+  );
+}
+
+export class LocalizedError extends Error {
+  readonly detail: Message;
+
+  constructor(key: MessageKey, params?: MessageParams) {
+    super(translate("ru", key, params));
+    this.detail = { key, params };
+  }
+}
+
+export function messageFromError(error: unknown, fallback: MessageKey): Message {
+  return error instanceof LocalizedError ? error.detail : { key: fallback };
+}

@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Отключаем Next Dev Tools UI и индикаторы в dev-режиме
   devIndicators: false,
-  // Заголовки для SharedArrayBuffer (необходимо для ffmpeg.wasm)
+  // Изолированные обработчики и ресурсы браузера.
   async headers() {
     return [
       {

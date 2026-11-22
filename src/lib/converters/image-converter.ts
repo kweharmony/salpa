@@ -1,13 +1,17 @@
+import { LocalizedError } from '../i18n';
 /**
  * Image Converter Service
  * Конвертация изображений с использованием Canvas API
  */
 
-export type ImageFormat = 'jpeg' | 'jpg' | 'png' | 'webp' | 'gif' | 'bmp' | 'ico';
+import { detectFormat } from '../types';
+
+export type ImageFormat = 'jpeg' | 'jpg' | 'png' | 'webp' | 'bmp' | 'ico';
 
 export interface ImageConversionOptions {
   format: ImageFormat;
-  quality?: number; // 0.0 - 1.0, только для jpeg и webp
+  quality?: number;
+  maxDimension?: number;
 }
 
 export class ImageConverter {
@@ -21,40 +25,30 @@ export class ImageConverter {
   ): Promise<Blob> {
     const { quality = 0.92 } = options;
     // Нормализуем формат: jpg -> jpeg для canvas API
-    let format = options.format === 'jpg' ? 'jpeg' : options.format;
+    const format = options.format === 'jpg' ? 'jpeg' : options.format;
 
     onProgress?.(10);
 
     // Загрузка изображения
-    const img = await this.loadImage(file);
+    const img = await this.loadSourceImage(file);
     onProgress?.(40);
 
     // Создание canvas
     const canvas = document.createElement('canvas');
 
-    // Для ICO ограничиваем размер до 256x256
-    let width = img.width;
-    let height = img.height;
-    if (options.format === 'ico') {
-      const maxSize = 256;
-      if (width > maxSize || height > maxSize) {
-        const ratio = Math.min(maxSize / width, maxSize / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-    }
+    const requestedLimit = options.maxDimension ?? Infinity;
+    const maxSize = format === 'ico' ? Math.min(requestedLimit, 256) : requestedLimit;
+    const ratio = Math.min(1, maxSize / Math.max(img.naturalWidth, img.naturalHeight));
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
 
     const ctx = canvas.getContext('2d', {
       alpha: format !== 'jpeg' && format !== 'bmp', // JPEG и BMP не поддерживают прозрачность
     });
 
     if (!ctx) {
-      throw new Error('Canvas context not available');
+      throw new LocalizedError('imageCanvas');
     }
-
-    // Установка размеров
-    canvas.width = width;
-    canvas.height = height;
 
     // Для JPEG и BMP заполняем фон белым (нет прозрачности)
     if (format === 'jpeg' || format === 'bmp') {
@@ -67,7 +61,7 @@ export class ImageConverter {
     // Рисуем изображение с высоким качеством
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, 0, 0, width, height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
     onProgress?.(80);
 
@@ -85,16 +79,33 @@ export class ImageConverter {
     }
 
     // Конвертируем в Blob
-    const blob = await this.canvasToBlob(canvas, format as 'jpeg' | 'png' | 'webp' | 'gif', quality);
+    const blob = await this.canvasToBlob(canvas, format, quality);
     onProgress?.(100);
 
     return blob;
   }
 
+  private static async loadSourceImage(file: File): Promise<HTMLImageElement> {
+    try {
+      return await this.loadImage(file);
+    } catch (error) {
+      const source = detectFormat(file)?.extension;
+      if (source !== 'heic' && source !== 'heif') throw error;
+
+      try {
+        const { heicTo } = await import('heic-to/csp');
+        const png = await heicTo({ blob: file, type: 'image/png' });
+        return await this.loadImage(png);
+      } catch {
+        throw new LocalizedError('heicDecode');
+      }
+    }
+  }
+
   /**
-   * Загружает изображение из File
+   * Загружает изображение из Blob
    */
-  private static loadImage(file: File): Promise<HTMLImageElement> {
+  private static loadImage(file: Blob): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -106,7 +117,7 @@ export class ImageConverter {
 
       img.onerror = () => {
         URL.revokeObjectURL(url);
-        reject(new Error('Не удалось загрузить изображение'));
+        reject(new LocalizedError('imageDecode'));
       };
 
       img.src = url;
@@ -124,10 +135,10 @@ export class ImageConverter {
     return new Promise((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
-          if (blob) {
+          if (blob?.type === `image/${format}`) {
             resolve(blob);
           } else {
-            reject(new Error('Не удалось создать Blob'));
+            reject(new LocalizedError('imageSave'));
           }
         },
         `image/${format}`,
@@ -141,7 +152,7 @@ export class ImageConverter {
    */
   private static async canvasToBMP(canvas: HTMLCanvasElement): Promise<Blob> {
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas context not available');
+    if (!ctx) throw new LocalizedError('imageCanvas');
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const { width, height, data } = imageData;
@@ -233,34 +244,5 @@ export class ImageConverter {
     uint8View.set(pngData, headerSize + entrySize);
 
     return new Blob([buffer], { type: 'image/x-icon' });
-  }
-
-  /**
-   * Проверяет, поддерживается ли формат для конвертации
-   */
-  static isSupported(mimeType: string): boolean {
-    const supportedTypes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/webp',
-      'image/gif',
-      'image/bmp',
-    ];
-    return supportedTypes.includes(mimeType.toLowerCase());
-  }
-
-  /**
-   * Возвращает доступные форматы для конвертации
-   */
-  static getAvailableFormats(sourceFormat: string): ImageFormat[] {
-    const formats: ImageFormat[] = ['jpg', 'png', 'webp', 'bmp', 'ico'];
-    const sourceExt = sourceFormat.toLowerCase();
-
-    // Нормализуем jpeg -> jpg для сравнения
-    const normalizedSource = sourceExt === 'jpeg' ? 'jpg' : sourceExt;
-
-    // Исключаем исходный формат
-    return formats.filter(f => f !== normalizedSource);
   }
 }

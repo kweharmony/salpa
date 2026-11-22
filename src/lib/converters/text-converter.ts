@@ -1,12 +1,19 @@
+import { LocalizedError } from '../i18n';
 /**
  * Text/Document Converter Service
  * Конвертация текстовых файлов и документов
  */
 
+import { parse as parseCSV } from 'csv-parse/browser/esm/sync';
+import { Marked } from 'marked';
+import { parse as parseYAML } from 'yaml';
+import { getFileExtension } from '../types';
+
 export type TextFormat = 'txt' | 'md' | 'json' | 'csv' | 'html' | 'xml';
 
 export interface TextConversionOptions {
   format: TextFormat;
+  sourceFormat?: string;
 }
 
 export class TextConverter {
@@ -19,7 +26,7 @@ export class TextConverter {
     onProgress?: (progress: number) => void
   ): Promise<Blob> {
     const { format } = options;
-    const sourceFormat = this.getFormat(file.name);
+    const sourceFormat = options.sourceFormat ?? getFileExtension(file.name);
 
     onProgress?.(20);
 
@@ -33,11 +40,11 @@ export class TextConverter {
     // Конвертация в зависимости от формата
     switch (format) {
       case 'json':
-        result = await this.toJSON(text, sourceFormat);
+        result = this.toJSON(text, sourceFormat);
         mimeType = 'application/json';
         break;
       case 'csv':
-        result = await this.toCSV(text, sourceFormat);
+        result = this.toCSV(text, sourceFormat);
         mimeType = 'text/csv';
         break;
       case 'md':
@@ -70,61 +77,72 @@ export class TextConverter {
   /**
    * CSV → JSON
    */
-  private static async toJSON(text: string, sourceFormat: string): Promise<string> {
+  private static toJSON(text: string, sourceFormat: string): string {
     if (sourceFormat === 'csv') {
-      const lines = text.split('\n').filter(line => line.trim());
-      if (lines.length === 0) return '[]';
-
-      const headers = this.parseCSVLine(lines[0]);
-      const data = lines.slice(1).map(line => {
-        const values = this.parseCSVLine(line);
-        const obj: Record<string, string> = {};
-        headers.forEach((header, index) => {
-          obj[header] = values[index] || '';
-        });
-        return obj;
-      });
-
-      return JSON.stringify(data, null, 2);
+      const [headers = [], ...rows] = this.readCSV(text);
+      if (new Set(headers).size !== headers.length) {
+        throw new LocalizedError('duplicateCsv');
+      }
+      return JSON.stringify(rows.map((row) =>
+        Object.fromEntries(headers.map((header, index) => [header, row[index]])),
+      ), null, 2);
     }
 
-    // TXT/MD → JSON (простое преобразование в массив строк)
-    const lines = text.split('\n');
-    return JSON.stringify({ content: lines }, null, 2);
+    if (sourceFormat === 'yaml' || sourceFormat === 'yml') {
+      try {
+        return JSON.stringify(parseYAML(text, { maxAliasCount: 50 }), null, 2);
+      } catch {
+        throw new LocalizedError('malformedYaml');
+      }
+    }
+
+    return JSON.stringify({ content: text.split('\n') }, null, 2);
   }
 
   /**
    * JSON → CSV
    */
-  private static async toCSV(text: string, sourceFormat: string): Promise<string> {
-    if (sourceFormat === 'json') {
-      try {
-        const data = JSON.parse(text);
-
-        if (Array.isArray(data) && data.length > 0) {
-          const headers = Object.keys(data[0]);
-          const headerLine = headers.map(h => this.escapeCSV(h)).join(',');
-
-          const dataLines = data.map((row: Record<string, unknown>) =>
-            headers.map(h => this.escapeCSV(String(row[h] ?? ''))).join(',')
-          );
-
-          return [headerLine, ...dataLines].join('\n');
-        }
-
-        // Если не массив, конвертируем в key-value
-        const entries = Object.entries(data);
-        return entries.map(([key, value]) =>
-          `${this.escapeCSV(key)},${this.escapeCSV(String(value))}`
-        ).join('\n');
-      } catch {
-        throw new Error('Невалидный JSON');
-      }
+  private static toCSV(text: string, sourceFormat: string): string {
+    if (sourceFormat !== 'json') {
+      return text.split(/\r\n|\n|\r/).map((line) => this.escapeCSV(line)).join('\n');
     }
 
-    // TXT/MD → CSV (каждая строка как ячейка)
-    const lines = text.split('\n');
-    return lines.map(line => this.escapeCSV(line)).join('\n');
+    const data: unknown = this.readJSON(text);
+    let rows: string[][];
+
+    if (Array.isArray(data)) {
+      if (data.length === 0) return '';
+      if (data.every((row): row is Record<string, unknown> => this.isRecord(row))) {
+        const headers = [...new Set(data.flatMap((row) => Object.keys(row)))];
+        rows = [headers, ...data.map((row) => headers.map((key) =>
+          Object.hasOwn(row, key) ? this.csvValue(row[key]) : '',
+        ))];
+      } else {
+        rows = [['value'], ...data.map((value) => [this.csvValue(value)])];
+      }
+    } else if (this.isRecord(data)) {
+      rows = Object.entries(data).map(([key, value]) => [key, this.csvValue(value)]);
+    } else {
+      rows = [['value'], [this.csvValue(data)]];
+    }
+
+    return rows.map((row) => row.map((value) => this.escapeCSV(value)).join(',')).join('\n');
+  }
+
+  private static isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private static csvValue(value: unknown): string {
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  }
+
+  private static readJSON(text: string): unknown {
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new LocalizedError('malformedJson');
+    }
   }
 
   /**
@@ -132,19 +150,16 @@ export class TextConverter {
    */
   private static toMarkdown(text: string, sourceFormat: string): string {
     if (sourceFormat === 'csv') {
-      const lines = text.split('\n').filter(line => line.trim());
-      if (lines.length === 0) return '';
-
-      const headers = this.parseCSVLine(lines[0]);
-      const headerRow = '| ' + headers.join(' | ') + ' |';
-      const separatorRow = '| ' + headers.map(() => '---').join(' | ') + ' |';
-
-      const dataRows = lines.slice(1).map(line => {
-        const values = this.parseCSVLine(line);
-        return '| ' + values.join(' | ') + ' |';
-      });
-
-      return [headerRow, separatorRow, ...dataRows].join('\n');
+      const [headers, ...rows] = this.readCSV(text);
+      if (!headers) return '';
+      const toRow = (values: string[]) =>
+        '| ' + values.map((value) => value
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/\\/g, '\\\\')
+          .replace(/\|/g, '\\|')
+          .replace(/\r\n|\n|\r/g, '<br>')).join(' | ') + ' |';
+      return [toRow(headers), toRow(headers.map(() => '---')), ...rows.map(toRow)].join('\n');
     }
 
     if (sourceFormat === 'json') {
@@ -166,15 +181,13 @@ export class TextConverter {
     let body: string;
 
     if (sourceFormat === 'csv') {
-      const lines = text.split('\n').filter(line => line.trim());
-      if (lines.length === 0) {
-        body = '<p>Empty file</p>';
+      const [headers, ...rows] = this.readCSV(text);
+      if (!headers) {
+        body = '<p>Пустой файл</p>';
       } else {
-        const headers = this.parseCSVLine(lines[0]);
         const headerCells = headers.map(h => `<th>${this.escapeHTML(h)}</th>`).join('');
 
-        const dataRows = lines.slice(1).map(line => {
-          const values = this.parseCSVLine(line);
+        const dataRows = rows.map(values => {
           const cells = values.map(v => `<td>${this.escapeHTML(v)}</td>`).join('');
           return `<tr>${cells}</tr>`;
         });
@@ -201,7 +214,7 @@ export class TextConverter {
   <style>
     body { font-family: system-ui, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
     table { border-collapse: collapse; width: 100%; }
-    th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+    th, td { padding: 8px; text-align: left; border: 1px solid #ddd; white-space: pre-wrap; }
     th { background: #f5f5f5; }
     pre { background: #f5f5f5; padding: 16px; overflow-x: auto; }
     code { background: #f0f0f0; padding: 2px 4px; }
@@ -227,13 +240,11 @@ ${body}
         xmlContent = `<root><content>${this.escapeXML(text)}</content></root>`;
       }
     } else if (sourceFormat === 'csv') {
-      const lines = text.split('\n').filter(line => line.trim());
-      if (lines.length === 0) {
+      const [headers, ...data] = this.readCSV(text);
+      if (!headers) {
         xmlContent = '<root></root>';
       } else {
-        const headers = this.parseCSVLine(lines[0]);
-        const rows = lines.slice(1).map(line => {
-          const values = this.parseCSVLine(line);
+        const rows = data.map(values => {
           const cells = headers.map((h, i) =>
             `    <${this.toXMLTag(h)}>${this.escapeXML(values[i] || '')}</${this.toXMLTag(h)}>`
           ).join('\n');
@@ -262,7 +273,7 @@ ${body}
     }
 
     if (Array.isArray(obj)) {
-      const items = obj.map((item, i) => this.jsonToXML(item, 'item')).join('\n');
+      const items = obj.map(item => this.jsonToXML(item, 'item')).join('\n');
       return `<${tagName}>\n${items}\n</${tagName}>`;
     }
 
@@ -282,7 +293,7 @@ ${body}
    */
   private static toXMLTag(str: string): string {
     // Удаляем недопустимые символы, заменяем пробелы на _
-    let tag = str.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^[0-9-]/, '_');
+    const tag = str.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^[0-9-]/, '_');
     return tag || 'field';
   }
 
@@ -312,8 +323,15 @@ ${body}
     }
 
     if (sourceFormat === 'csv') {
-      const lines = text.split('\n').filter(line => line.trim());
-      return lines.map(line => this.parseCSVLine(line).join('\t')).join('\n');
+      return this.readCSV(text).map(row => row.join('\t')).join('\n');
+    }
+
+    if (sourceFormat === 'html') {
+      const template = document.createElement('template');
+      template.innerHTML = text;
+      template.content.querySelectorAll('style,script,title,template').forEach((node) => node.remove());
+      template.content.querySelectorAll('br,p,h1,h2,h3,h4,h5,h6,div,li,tr').forEach((node) => node.after('\n'));
+      return (template.content.textContent ?? '').trim();
     }
 
     // Удаляем markdown синтаксис
@@ -329,41 +347,19 @@ ${body}
     return text;
   }
 
-  /**
-   * Парсит строку CSV с учётом кавычек
-   */
-  private static parseCSVLine(line: string): string[] {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
+  private static readCSV(text: string): string[][] {
+    try {
+      return parseCSV(text, { bom: true, skip_empty_lines: true });
+    } catch {
+      throw new LocalizedError('malformedCsv');
     }
-
-    result.push(current.trim());
-    return result;
   }
 
   /**
    * Экранирует строку для CSV
    */
   private static escapeCSV(str: string): string {
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
       return `"${str.replace(/"/g, '""')}"`;
     }
     return str;
@@ -380,59 +376,27 @@ ${body}
       .replace(/"/g, '&quot;');
   }
 
-  /**
-   * Простая конвертация Markdown → HTML
-   */
   private static markdownToHTML(md: string): string {
-    return md
-      // Заголовки
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      // Bold
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      // Italic
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      // Code
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-      // Paragraphs
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/^/, '<p>')
-      .replace(/$/, '</p>');
-  }
-
-  /**
-   * Получает формат файла по имени
-   */
-  private static getFormat(filename: string): string {
-    const ext = filename.split('.').pop()?.toLowerCase() || '';
-    return ext;
-  }
-
-  /**
-   * Проверяет, поддерживается ли формат
-   */
-  static isSupported(mimeType: string): boolean {
-    const supportedTypes = [
-      'text/plain',
-      'text/csv',
-      'text/markdown',
-      'application/json',
-      'text/html',
-      'application/xml',
-      'text/xml',
-    ];
-    return supportedTypes.includes(mimeType.toLowerCase());
-  }
-
-  /**
-   * Возвращает доступные форматы для конвертации
-   */
-  static getAvailableFormats(sourceFormat: string): TextFormat[] {
-    const formats: TextFormat[] = ['txt', 'md', 'json', 'csv', 'html', 'xml'];
-    const ext = sourceFormat.toLowerCase();
-    return formats.filter(f => f !== ext);
+    const parser = new Marked({
+      async: false,
+      renderer: {
+        html: ({ text }) => this.escapeHTML(text),
+        image: ({ text }) => this.escapeHTML(text),
+        link({ href, tokens }) {
+          const label = this.parser.parseInline(tokens);
+          try {
+            const url = new URL(href, 'https://local.invalid');
+            if (!['https:', 'http:', 'mailto:'].includes(url.protocol)) return label;
+          } catch {
+            return label;
+          }
+          const escaped = href.replace(/[&"<>]/g, (char) =>
+            ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' })[char] ?? char,
+          );
+          return `<a href="${escaped}">${label}</a>`;
+        },
+      },
+    });
+    return parser.parse(md, { async: false });
   }
 }

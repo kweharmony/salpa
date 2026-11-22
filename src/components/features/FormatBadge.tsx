@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -18,9 +20,10 @@ const categoryColors = {
 };
 
 export function FormatBadge({ format, category, className }: FormatBadgeProps) {
+  const { t } = useLocale();
   const handleClick = () => {
     navigator.clipboard.writeText(format.toUpperCase());
-    toast.success(`${format.toUpperCase()} скопирован`);
+    toast.success(t("copied", { value: format.toUpperCase() }));
   };
 
   return (
@@ -31,6 +34,7 @@ export function FormatBadge({ format, category, className }: FormatBadgeProps) {
         category && categoryColors[category],
         className
       )}
+      title={t("copyFormat", { value: format.toUpperCase() })}
       onClick={handleClick}
     >
       {format.toUpperCase()}

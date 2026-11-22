@@ -13,8 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FormatBadge } from "@/components/features/FormatBadge";
-import { SUPPORTED_FORMATS, FormatInfo } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { SUPPORTED_FORMATS, type FormatInfo } from "@/lib/types";
+import { useLocale } from "@/components/layout/LocaleProvider";
+import { describeFormat } from "@/lib/format-descriptions";
 
 type Category = "all" | "image" | "document" | "audio" | "video";
 
@@ -25,15 +26,12 @@ const categoryIcons = {
   video: Video,
 };
 
-const categoryNames = {
-  all: "Все форматы",
-  image: "Изображения",
-  document: "Документы",
-  audio: "Аудио",
-  video: "Видео",
-};
+const categoryLabels = {
+  all: "allFormats", image: "images", document: "documents", audio: "audio", video: "video",
+} as const;
 
 export default function FormatsPage() {
+  const { locale, t } = useLocale();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category>("all");
 
@@ -42,14 +40,15 @@ export default function FormatsPage() {
       const matchesSearch =
         format.extension.toLowerCase().includes(search.toLowerCase()) ||
         format.name.toLowerCase().includes(search.toLowerCase()) ||
-        format.description.toLowerCase().includes(search.toLowerCase());
+        format.description.toLowerCase().includes(search.toLowerCase()) ||
+        describeFormat(format, locale).toLowerCase().includes(search.toLowerCase());
 
       const matchesCategory =
         selectedCategory === "all" || format.category === selectedCategory;
 
       return matchesSearch && matchesCategory;
     });
-  }, [search, selectedCategory]);
+  }, [locale, search, selectedCategory]);
 
   const groupedFormats = useMemo(() => {
     const groups: Record<string, FormatInfo[]> = {
@@ -74,11 +73,10 @@ export default function FormatsPage() {
       <section className="bg-gradient-to-b from-muted/50 to-background py-12">
         <div className="mx-auto max-w-[1200px] px-6 text-center">
           <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground">
-            Поддерживаемые форматы
+            {t("formatsTitle")}
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Полный список форматов, которые можно конвертировать с помощью Salpa.
-            Нажмите на формат, чтобы скопировать его название.
+            {t("formatsIntro")}
           </p>
         </div>
       </section>
@@ -92,7 +90,8 @@ export default function FormatsPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Поиск формата..."
+                placeholder={t("searchFormats")}
+                aria-label={t("searchFormats")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -113,7 +112,7 @@ export default function FormatsPage() {
                     className="h-8"
                   >
                     {Icon && <Icon className="mr-1 h-4 w-4" />}
-                    {categoryNames[category]}
+                    {t(categoryLabels[category])}
                   </Button>
                 );
               })}
@@ -128,9 +127,9 @@ export default function FormatsPage() {
           {filteredFormats.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Search className="mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="mb-2 text-xl font-semibold">Формат не найден</h3>
+              <h3 className="mb-2 text-xl font-semibold">{t("formatNotFound")}</h3>
               <p className="text-muted-foreground">
-                Попробуйте изменить поисковый запрос или выбрать другую категорию
+                {t("changeSearch")}
               </p>
             </div>
           ) : (
@@ -147,7 +146,7 @@ export default function FormatsPage() {
                   <div key={category}>
                     <div className="mb-4 flex items-center gap-2">
                       <Icon className="h-5 w-5 text-primary" />
-                      <h2 className="text-xl font-semibold">{categoryNames[category]}</h2>
+                      <h2 className="text-xl font-semibold">{t(categoryLabels[category])}</h2>
                       <span className="text-sm text-muted-foreground">
                         ({formats.length})
                       </span>
@@ -156,9 +155,9 @@ export default function FormatsPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-24">Формат</TableHead>
-                            <TableHead>Описание</TableHead>
-                            <TableHead className="w-64">Конвертируется в</TableHead>
+                            <TableHead className="w-24">{t("format")}</TableHead>
+                            <TableHead>{t("description")}</TableHead>
+                            <TableHead className="w-64">{t("convertsTo")}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -174,7 +173,7 @@ export default function FormatsPage() {
                                 <div>
                                   <p className="font-medium">{format.name}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {format.description}
+                                    {describeFormat(format, locale)}
                                   </p>
                                 </div>
                               </TableCell>

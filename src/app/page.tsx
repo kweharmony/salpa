@@ -1,143 +1,128 @@
 "use client";
 
-import { Shield, Zap, MousePointerClick } from "lucide-react";
+import { useLocale } from "@/components/layout/LocaleProvider";
+
+import { useState } from "react";
+import { Shield, Layers, MousePointerClick } from "lucide-react";
+import { toast } from "sonner";
 import { FileDropzone } from "@/components/features/FileDropzone";
 import { FileList } from "@/components/features/FileList";
 import { ConversionPanel } from "@/components/features/ConversionPanel";
-import { LongVideoWarning } from "@/components/features/LongVideoWarning";
-import { LongAudioWarning } from "@/components/features/LongAudioWarning";
-import { useFileConverter } from "@/hooks/useFileConverter";
-import { toast } from "sonner";
+import { BatchSettings } from "@/components/features/BatchSettings";
+import { LongMediaWarning } from "@/components/features/LongMediaWarning";
+import { OfflineSetup } from "@/components/features/OfflineSetup";
+import { type BatchResult, useFileConverter } from "@/hooks/useFileConverter";
 
 export default function Home() {
-  const {
-    files,
-    isConverting,
-    overallProgress,
-    longMediaWarning,
-    addFiles,
-    removeFile,
-    updateFileFormat,
-    clearAll,
-    convertAll,
-    confirmLongMediaConversion,
-    cancelLongMediaConversion,
-    downloadFile,
-    downloadAll,
-  } = useFileConverter();
+  const { t } = useLocale();
+  const queue = useFileConverter();
+  const [archiving, setArchiving] = useState(false);
+  const busy = queue.phase !== "idle";
 
-  const handleFilesAdded = (newFiles: File[]) => {
-    addFiles(newFiles);
-    toast.success(
-      `${newFiles.length} файл${newFiles.length > 1 ? "ов" : ""} добавлен${newFiles.length > 1 ? "о" : ""}`,
-      { id: "files-added" }
-    );
-  };
+  function addFiles(files: File[]) {
+    const accepted = queue.addFiles(files);
+    if (accepted) toast.success(t("filesAdded", { count: accepted }));
+  }
 
-  const handleConvertAll = async () => {
-    toast.loading("Конвертация...", { id: "convert" });
-    const result = await convertAll();
+  function reportBatch(result: BatchResult) {
+    if (result.status !== "finished") return;
+    if (result.cancelled) toast.info(t("batchStopped"));
+    else if (result.failed) toast.warning(t("batchSummary", { done: result.done, failed: result.failed }));
+    else if (result.done) toast.success(t("filesReady", { count: result.done }));
+  }
 
-    if (result === "needs-confirm") {
-      toast.info("Обнаружен длинный файл — требуется подтверждение.", { id: "convert" });
-      return;
+  async function downloadArchive() {
+    if (archiving) return;
+    setArchiving(true);
+    try {
+      await queue.downloadArchive();
+    } catch {
+      toast.error(t("archiveFailed"));
+    } finally {
+      setArchiving(false);
     }
-
-    if (result === "converted") {
-      toast.success("Конвертация завершена!", { id: "convert" });
-      return;
-    }
-
-    toast.info("Нет файлов для конвертации", { id: "convert" });
-  };
-
-  const handleConfirmLongMedia = async () => {
-    toast.loading("Конвертация...", { id: "convert" });
-    await confirmLongMediaConversion();
-    toast.success("Конвертация завершена!", { id: "convert" });
-  };
-
-  const handleClearAll = () => {
-    clearAll();
-    toast.info("Список очищен", { id: "clear" });
-  };
+  }
 
   return (
     <div className="flex flex-col">
-      {/* Long Media Warning Modal */}
-      {longMediaWarning?.kind === "video" && (
-        <LongVideoWarning
-          fileName={longMediaWarning.fileName}
-          duration={longMediaWarning.duration}
-          onConfirm={handleConfirmLongMedia}
-          onCancel={cancelLongMediaConversion}
+      {queue.longMedia.length > 0 && (
+        <LongMediaWarning
+          files={queue.longMedia}
+          onConfirm={async () => reportBatch(await queue.confirm())}
+          onCancel={queue.cancel}
         />
       )}
 
-      {longMediaWarning?.kind === "audio" && (
-        <LongAudioWarning
-          fileName={longMediaWarning.fileName}
-          duration={longMediaWarning.duration}
-          onConfirm={handleConfirmLongMedia}
-          onCancel={cancelLongMediaConversion}
-        />
-      )}
-
-      {/* Hero Section */}
       <section className="bg-gradient-to-b from-muted/50 to-background py-12 md:py-16">
         <div className="mx-auto max-w-[1200px] px-6 text-center">
           <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-            Конвертируйте файлы локально в браузере
+            {t("homeTitle")}
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-            Абсолютная приватность. Файлы не покидают ваше устройство.
-            Мгновенная скорость без загрузки на сервер.
+            {t("homeIntro")}
           </p>
-
-          {/* Features */}
-          <div className="mb-8 flex flex-wrap items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              <span>Полная приватность</span>
+              <span>{t("noUpload")}</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Zap className="h-5 w-5 text-primary" />
-              <span>Мгновенная скорость</span>
+            <div className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-primary" />
+              <span>{t("batch")}</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-2">
               <MousePointerClick className="h-5 w-5 text-primary" />
-              <span>Без регистрации</span>
+              <span>{t("noRegistration")}</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Dropzone Section */}
       <section className="py-8">
         <div className="mx-auto max-w-[1200px] px-6">
-          <FileDropzone onFilesAdded={handleFilesAdded} disabled={isConverting} />
+          <FileDropzone onFilesAdded={addFiles} disabled={busy} />
+          {queue.rejected.length > 0 && (
+            <div role="status" className="mt-3 rounded-lg border border-destructive/30 p-4 text-sm">
+              <p className="font-medium text-destructive">{t("filesSkipped", { count: queue.rejected.length })}</p>
+              <ul className="mt-1 max-h-40 list-inside list-disc overflow-auto text-muted-foreground">
+                {queue.rejected.map(({ name, error }, index) => (
+                  <li key={index} className="break-words">{name} — {t(error.key, error.params)}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <OfflineSetup />
         </div>
       </section>
 
-      {/* File List Section */}
       <section className="pb-12">
         <div className="mx-auto max-w-[1200px] px-6">
-          <FileList
-            files={files}
-            onRemove={removeFile}
-            onFormatChange={updateFileFormat}
-            onDownload={downloadFile}
+          <BatchSettings
+            files={queue.files}
+            disabled={busy}
+            onApply={(target, options, imagesOnly) => {
+              const count = queue.applyBatchSettings(target, options, imagesOnly);
+              if (count) toast.success(t("settingsApplied", { count }));
+            }}
           />
-
-          {/* Conversion Panel */}
+          <FileList
+            files={queue.files}
+            disabled={busy}
+            onRemove={queue.removeFile}
+            onFormatChange={queue.updateFileFormat}
+            onDownload={queue.downloadFile}
+          />
           <div className="mt-4">
             <ConversionPanel
-              files={files}
-              onConvertAll={handleConvertAll}
-              onClearAll={handleClearAll}
-              onDownloadAll={downloadAll}
-              isConverting={isConverting}
-              overallProgress={overallProgress}
+              files={queue.files}
+              onConvertAll={async () => reportBatch(await queue.convertAll())}
+              onRetry={async () => reportBatch(await queue.convertAll(true))}
+              onCancel={queue.cancel}
+              onClearAll={queue.clearAll}
+              onDownloadAll={downloadArchive}
+              phase={queue.phase}
+              overallProgress={queue.overallProgress}
+              archiving={archiving}
             />
           </div>
         </div>

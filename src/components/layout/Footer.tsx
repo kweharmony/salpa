@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { Github } from "lucide-react";
 import { SalpaLogo } from "./SalpaLogo";
+import { useLocale } from "./LocaleProvider";
 
 export function Footer() {
+  const { t } = useLocale();
   return (
     <footer className="border-t border-border bg-muted/50">
       <div className="mx-auto max-w-[1200px] px-6 py-8">
@@ -16,7 +18,7 @@ export function Footer() {
               <span className="text-lg font-bold text-primary">alpa</span>
             </Link>
             <p className="text-sm text-muted-foreground">
-              Конвертируйте файлы локально в браузере
+              {t("homeTitle")}
             </p>
           </div>
 
@@ -26,19 +28,19 @@ export function Footer() {
               href="/about"
               className="text-sm text-muted-foreground transition-colors duration-150 hover:text-primary"
             >
-              О проекте
+              {t("about")}
             </Link>
             <Link
               href="/formats"
               className="text-sm text-muted-foreground transition-colors duration-150 hover:text-primary"
             >
-              Форматы
+              {t("formats")}
             </Link>
             <Link
               href="/faq"
               className="text-sm text-muted-foreground transition-colors duration-150 hover:text-primary"
             >
-              FAQ
+              {t("faqLink")}
             </Link>
           </div>
 
@@ -57,10 +59,10 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 md:flex-row">
           <p className="text-xs text-muted-foreground">
-            {new Date().getFullYear()} Salpa. Open Source проект.
+            {t("sourceProject", { year: new Date().getFullYear() })}
           </p>
           <p className="text-xs text-muted-foreground">
-            Версия 1.0.0
+            {t("version", { value: "1.0.0" })}
           </p>
         </div>
       </div>

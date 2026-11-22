@@ -7,15 +7,18 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SalpaLogo } from "./SalpaLogo";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "./LocaleProvider";
+import { isLocale, locales } from "@/lib/i18n";
 
 const navigation = [
-  { name: "О проекте", href: "/about" },
-  { name: "Форматы", href: "/formats" },
-  { name: "FAQ", href: "/faq" },
-];
+  { label: "about", href: "/about" },
+  { label: "formats", href: "/formats" },
+  { label: "faqLink", href: "/faq" },
+] as const;
 
 export function Header() {
   const pathname = usePathname();
+  const { locale, setLocale, t } = useLocale();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -31,7 +34,7 @@ export function Header() {
         <div className="hidden md:flex md:items-center md:gap-8">
           {navigation.map((item) => (
             <Link
-              key={item.name}
+              key={item.href}
               href={item.href}
               className={cn(
                 "text-sm font-medium transition-colors duration-150 hover:text-primary",
@@ -40,25 +43,40 @@ export function Header() {
                   : "text-muted-foreground"
               )}
             >
-              {item.name}
+              {t(item.label)}
             </Link>
           ))}
         </div>
 
-        {/* Mobile menu button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label={mobileMenuOpen ? "Закрыть меню" : "Открыть меню"}
-        >
-          {mobileMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </Button>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <select
+            aria-label={t("language")}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+            value={locale}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (isLocale(value)) setLocale(value);
+            }}
+          >
+            {Object.entries(locales).map(([language, name]) => (
+              <option key={language} value={language} lang={language}>{name}</option>
+            ))}
+          </select>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={t(mobileMenuOpen ? "closeMenu" : "openMenu")}
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
       </nav>
 
       {/* Mobile Navigation */}
@@ -67,7 +85,7 @@ export function Header() {
           <div className="space-y-1 px-6 py-4">
             {navigation.map((item) => (
               <Link
-                key={item.name}
+                key={item.href}
                 href={item.href}
                 className={cn(
                   "block rounded-md px-3 py-2 text-base font-medium transition-colors duration-150",
@@ -77,7 +95,7 @@ export function Header() {
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {item.name}
+                {t(item.label)}
               </Link>
             ))}
           </div>

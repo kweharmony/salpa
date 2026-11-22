@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+
 import {
   Select,
   SelectContent,
@@ -23,21 +25,22 @@ export function FormatSelector({
   onChange,
   disabled = false,
 }: FormatSelectorProps) {
+  const { t } = useLocale();
   // Используем ConverterService для получения доступных форматов
   const availableFormats = ConverterService.getAvailableFormats(file.file);
 
   if (availableFormats.length === 0) {
     return (
       <div className="text-sm text-muted-foreground">
-        Формат не поддерживается
+        {t("unsupported")}
       </div>
     );
   }
 
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className="w-32">
-        <SelectValue placeholder="Формат" />
+      <SelectTrigger className="w-32" aria-label={t("targetFormat", { name: file.name })}>
+        <SelectValue placeholder={t("format")} />
       </SelectTrigger>
       <SelectContent>
         {availableFormats.map((format) => (

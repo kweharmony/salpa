@@ -1,41 +1,63 @@
 {
-  "name": "app",
+  "name": "salpa",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "predev": "node scripts/copy-engines.mjs",
+    "dev": "next dev --webpack",
+    "prebuild": "node scripts/copy-engines.mjs",
+    "build": "next build --webpack",
+    "postbuild": "node scripts/write-offline-manifest.mjs",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/unit/*.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
-    "@ffmpeg/util": "^0.12.2",
+    "@fontsource-variable/inter": "^5.3.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@zip.js/zip.js": "^2.25.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "csv-parse": "^6.2.1",
+    "docx": "^9.16.0",
+    "docx-preview": "^0.3.7",
+    "dompurify": "^3.4.18",
+    "heic-to": "^1.6.7",
     "lamejs": "^1.2.1",
     "lucide-react": "^0.556.0",
-    "next": "^16.0.9",
+    "marked": "^17.0.6",
+    "next": "^16.4.6",
     "next-themes": "^0.4.6",
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.7.284",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.0.9",
+    "eslint-config-next": "^16.4.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

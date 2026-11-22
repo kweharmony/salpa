@@ -8,14 +8,18 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useLocale } from "@/components/layout/LocaleProvider"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
+  const { t } = useLocale()
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      containerAriaLabel={t("notifications")}
+      toastOptions={{ closeButtonAriaLabel: t("closeNotification") }}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

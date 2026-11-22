@@ -1,15 +1,21 @@
 "use client";
 
-import { X, Download, Loader2, Check, AlertCircle, FileIcon, Image, FileText, Music, Video } from "lucide-react";
+import { useLocale } from "@/components/layout/LocaleProvider";
+
+import { useState } from "react";
+import { Printer, X, Download, Loader2, Check, AlertCircle, FileIcon, ImageIcon, FileText, Music, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { FormatSelector } from "./FormatSelector";
+import { DocumentPrintPreview } from "./DocumentPrintPreview";
 import { ConvertibleFile, formatFileSize } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { Translate } from "@/lib/i18n";
 
 interface FileRowProps {
   file: ConvertibleFile;
+  disabled: boolean;
   onRemove: (id: string) => void;
   onFormatChange: (id: string, format: string) => void;
   onDownload: (id: string) => void;
@@ -18,7 +24,7 @@ interface FileRowProps {
 function getFileIcon(category: string) {
   switch (category) {
     case "image":
-      return <Image className="h-5 w-5 text-primary" />;
+      return <ImageIcon aria-hidden className="h-5 w-5 text-primary" />;
     case "document":
       return <FileText className="h-5 w-5 text-primary" />;
     case "audio":
@@ -30,39 +36,45 @@ function getFileIcon(category: string) {
   }
 }
 
-function getStatusBadge(status: ConvertibleFile["status"]) {
+function getStatusBadge(status: ConvertibleFile["status"], forPrint: boolean, t: Translate) {
   switch (status) {
     case "pending":
-      return <Badge variant="secondary">Ожидание</Badge>;
+      return <Badge variant="secondary">{t("pending")}</Badge>;
     case "converting":
       return (
         <Badge className="bg-blue-100 text-blue-700">
           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          Конвертация
+          {t("converting")}
         </Badge>
       );
     case "completed":
       return (
         <Badge className="bg-green-100 text-green-700">
           <Check className="mr-1 h-3 w-3" />
-          Готово
+          {t(forPrint ? "readyToPrint" : "ready")}
         </Badge>
       );
+    case "cancelled":
+      return <Badge variant="outline">{t("cancelled")}</Badge>;
     case "error":
       return (
         <Badge variant="destructive">
           <AlertCircle className="mr-1 h-3 w-3" />
-          Ошибка
+          {t("error")}
         </Badge>
       );
   }
 }
 
-export function FileRow({ file, onRemove, onFormatChange, onDownload }: FileRowProps) {
-  const category = file.type.split("/")[0];
+export function FileRow({ file, disabled, onRemove, onFormatChange, onDownload }: FileRowProps) {
+  const { t } = useLocale();
+  const [printing, setPrinting] = useState(false);
+  const result = file.result;
 
   return (
     <div
+      role="listitem"
+      aria-label={file.name}
       className={cn(
         "group flex flex-col gap-3 border-b border-border p-4 transition-colors duration-150",
         "hover:bg-muted/50",
@@ -72,27 +84,33 @@ export function FileRow({ file, onRemove, onFormatChange, onDownload }: FileRowP
       {/* File info */}
       <div className="flex flex-1 items-center gap-3">
         <div className="rounded-lg bg-muted p-2">
-          {getFileIcon(category)}
+          {getFileIcon(file.category)}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-foreground">{file.name}</p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{formatFileSize(file.size)}</span>
+            <span>{formatFileSize(file.size)}{result?.kind === "download" && ` → ${formatFileSize(result.blob.size)}`}</span>
             <span>•</span>
             <span className="uppercase">{file.sourceFormat}</span>
+            {result?.kind === "download" && result.method === "copy" && <span>· {t("noReencoding")}</span>}
           </div>
+          {file.category === "image" && file.options?.maxDimension && (
+            <p className="text-xs text-muted-foreground">{t("maxSideRow", { size: file.options.maxDimension })}</p>
+          )}
+          {result?.kind === "download" && result.note && <p className="mt-1 text-xs text-muted-foreground">{t(result.note.key, result.note.params)}</p>}
+          {file.status === "error" && <p className="mt-1 break-words text-sm text-destructive">{file.error && t(file.error.key, file.error.params)}</p>}
         </div>
       </div>
 
       {/* Format selector (hidden after conversion) */}
       {file.status !== "completed" && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">в</span>
+          <span className="text-sm text-muted-foreground">{t("to")}</span>
           <FormatSelector
             file={file}
             value={file.targetFormat}
             onChange={(format) => onFormatChange(file.id, format)}
-            disabled={file.status === "converting"}
+            disabled={disabled}
           />
         </div>
       )}
@@ -106,19 +124,19 @@ export function FileRow({ file, onRemove, onFormatChange, onDownload }: FileRowP
 
       {/* Status */}
       <div className="flex items-center gap-3">
-        {getStatusBadge(file.status)}
+        {getStatusBadge(file.status, result?.kind === "print", t)}
       </div>
 
       {/* Progress bar (only when converting) */}
       {file.status === "converting" && (
         <div className="w-24">
-          <Progress value={file.progress} className="h-2" />
+          <Progress value={file.progress} aria-label={t("fileProgress", { name: file.name })} className="h-2" />
         </div>
       )}
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        {file.status === "completed" && (
+        {result?.kind === "download" && (
           <Button
             variant="default"
             size="sm"
@@ -126,21 +144,25 @@ export function FileRow({ file, onRemove, onFormatChange, onDownload }: FileRowP
             className="bg-[#22C55E] hover:bg-[#16A34A]"
           >
             <Download className="mr-1 h-4 w-4" />
-            Скачать
+            {t("download")}
           </Button>
         )}
-        {file.status === "error" && (
-          <p className="max-w-[150px] truncate text-sm text-destructive">
-            {file.error || "Ошибка конвертации"}
-          </p>
+        {result?.kind === "print" && (
+          <>
+            <Button size="sm" onClick={() => setPrinting(true)}>
+              <Printer className="h-4 w-4" />
+              {t("printPdf")}
+            </Button>
+            {printing && <DocumentPrintPreview html={result.html} title={result.title} onClose={() => setPrinting(false)} />}
+          </>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onRemove(file.id)}
-          disabled={file.status === "converting"}
+          disabled={disabled}
           className="opacity-50 transition-opacity group-hover:opacity-100"
-          aria-label="Удалить файл"
+          aria-label={t("removeFile", { name: file.name })}
         >
           <X className="h-4 w-4" />
         </Button>

@@ -1,8 +1,11 @@
 "use client";
 
+import { useLocale } from "@/components/layout/LocaleProvider";
+
 import { useCallback, useState } from "react";
 import { Upload, FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FILE_ACCEPT } from "@/lib/types";
 
 interface FileDropzoneProps {
   onFilesAdded: (files: File[]) => void;
@@ -10,6 +13,7 @@ interface FileDropzoneProps {
 }
 
 export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzoneProps) {
+  const { t } = useLocale();
   const [isDragActive, setIsDragActive] = useState(false);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -71,7 +75,8 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
       onClick={() => !disabled && document.getElementById("file-input")?.click()}
       role="button"
       tabIndex={disabled ? -1 : 0}
-      aria-label="Зона для загрузки файлов"
+      aria-disabled={disabled}
+      aria-label={t("uploadArea")}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -88,7 +93,9 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
         className="sr-only"
         onChange={handleFileInput}
         disabled={disabled}
-        accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,image/x-icon,image/tiff,.ico,.tiff,.tif,.avif,.txt,.md,.csv,.json,.html,.xml,.yaml,.yml,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/flac,audio/aac,.mp3,.wav,.ogg,.flac,.aac,.m4a,.wma,video/mp4,video/webm,video/x-msvideo,video/quicktime,image/gif,.mp4,.webm,.avi,.mov,.mkv,.gif,.flv,.wmv,.3gp"
+        accept={FILE_ACCEPT}
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
       />
 
       <div className={cn(
@@ -103,12 +110,10 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
       </div>
 
       <p className="mb-2 text-lg font-medium text-foreground">
-        {isDragActive
-          ? "Отпустите файлы"
-          : "Перетащите файлы или нажмите для выбора"}
+        {t(isDragActive ? "dropNow" : "dropOrChoose")}
       </p>
       <p className="text-sm text-muted-foreground">
-        Изображения, документы, аудио и видео файлы
+        {t("fileTypes")}
       </p>
     </div>
   );

@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import "@fontsource-variable/inter/wght.css";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Toaster } from "@/components/ui/sonner";
-
-const inter = Inter({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-inter",
-});
+import { LocaleProvider } from "@/components/layout/LocaleProvider";
 
 export const metadata: Metadata = {
   title: "Salpa",
@@ -23,11 +19,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className={`${inter.variable} antialiased min-h-screen flex flex-col`}>
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <Toaster position="bottom-right" visibleToasts={3} expand closeButton />
+      <body className="antialiased min-h-screen flex flex-col">
+        <LocaleProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <Toaster position="bottom-right" visibleToasts={3} expand closeButton />
+        </LocaleProvider>
       </body>
     </html>
   );

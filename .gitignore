@@ -45,3 +45,10 @@ next-env.d.ts
 
 # documentation
 /docs
+
+
+# Generated offline assets and browser test output
+/public/engine/
+/public/offline-assets.json
+/playwright-report/
+/test-results/
