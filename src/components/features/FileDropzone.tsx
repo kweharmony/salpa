@@ -1,11 +1,10 @@
 "use client";
 
+import { useId, useRef, useState, type DragEvent } from "react";
+import { FileIcon, Upload } from "lucide-react";
 import { useLocale } from "@/components/layout/LocaleProvider";
-
-import { useCallback, useState } from "react";
-import { Upload, FileIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { FILE_ACCEPT } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface FileDropzoneProps {
   onFilesAdded: (files: File[]) => void;
@@ -14,107 +13,87 @@ interface FileDropzoneProps {
 
 export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzoneProps) {
   const { t } = useLocale();
-  const [isDragActive, setIsDragActive] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const dragDepth = useRef(0);
+  const description = useId();
+  const [isDragging, setDragging] = useState(false);
+  const isDragActive = isDragging && !disabled;
 
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!disabled) {
-      setIsDragActive(true);
-    }
-  }, [disabled]);
+  function handleDragEnter(event: DragEvent) {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    dragDepth.current++;
+    if (!disabled) setDragging(true);
+  }
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-  }, []);
+  function handleDragLeave() {
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragging(false);
+  }
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-
+  function handleDrop(event: DragEvent) {
+    event.preventDefault();
+    dragDepth.current = 0;
+    setDragging(false);
     if (disabled) return;
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      onFilesAdded(files);
-    }
-  }, [disabled, onFilesAdded]);
-
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    if (files.length > 0) {
-      onFilesAdded(files);
-    }
-    // Reset input value to allow selecting the same file again
-    e.target.value = "";
-  }, [onFilesAdded]);
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length) onFilesAdded(files);
+  }
 
   return (
     <div
-      className={cn(
-        "relative rounded-xl border-2 border-dashed transition-all duration-250",
-        "flex flex-col items-center justify-center p-8 md:p-12",
-        "cursor-pointer",
-        isDragActive
-          ? "border-primary bg-primary/5"
-          : "border-border hover:border-primary hover:bg-muted/50",
-        disabled && "cursor-not-allowed opacity-50"
-      )}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-      onClick={() => !disabled && document.getElementById("file-input")?.click()}
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-disabled={disabled}
-      aria-label={t("uploadArea")}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          if (!disabled) {
-            document.getElementById("file-input")?.click();
-          }
-        }
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = disabled ? "none" : "copy";
       }}
+      onDrop={handleDrop}
     >
       <input
+        ref={input}
         id="file-input"
         type="file"
         multiple
-        className="sr-only"
-        onChange={handleFileInput}
+        hidden
         disabled={disabled}
         accept={FILE_ACCEPT}
-        tabIndex={-1}
-        onClick={(event) => event.stopPropagation()}
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          if (!disabled && files.length) onFilesAdded(files);
+          event.target.value = "";
+        }}
       />
-
-      <div className={cn(
-        "mb-4 rounded-full p-4 transition-colors duration-250",
-        isDragActive ? "bg-primary/10" : "bg-muted"
-      )}>
-        {isDragActive ? (
-          <FileIcon className="h-10 w-10 text-primary" />
-        ) : (
-          <Upload className="h-10 w-10 text-muted-foreground" />
+      <button
+        type="button"
+        disabled={disabled}
+        aria-label={t("uploadArea")}
+        aria-describedby={description}
+        onClick={() => input.current?.click()}
+        className={cn(
+          "flex w-full cursor-pointer flex-col items-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors",
+          "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:py-10",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          isDragActive
+            ? "border-primary bg-primary/5"
+            : "border-border enabled:hover:border-primary enabled:hover:bg-muted/50",
         )}
-      </div>
-
-      <p className="mb-2 text-lg font-medium text-foreground">
-        {t(isDragActive ? "dropNow" : "dropOrChoose")}
-      </p>
-      <p className="text-sm text-muted-foreground">
-        {t("fileTypes")}
-      </p>
+      >
+        <span className={cn("mb-3 rounded-full p-3", isDragActive ? "bg-primary/10" : "bg-muted")}>
+          {isDragActive
+            ? <FileIcon aria-hidden className="size-8 text-primary" />
+            : <Upload aria-hidden className="size-8 text-muted-foreground" />}
+        </span>
+        <span className="mb-1 text-lg font-medium text-foreground">
+          {isDragActive ? t("dropNow") : (
+            <>
+              <span className="sm:hidden">{t("chooseFiles")}</span>
+              <span className="hidden sm:inline">{t("dropOrChoose")}</span>
+            </>
+          )}
+        </span>
+        <span id={description} className="text-sm text-muted-foreground">{t("fileTypes")}</span>
+      </button>
     </div>
   );
 }

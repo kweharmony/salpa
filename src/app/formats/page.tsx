@@ -36,12 +36,13 @@ export default function FormatsPage() {
   const [selectedCategory, setSelectedCategory] = useState<Category>("all");
 
   const filteredFormats = useMemo(() => {
+    const query = search.trim().toLowerCase();
     return SUPPORTED_FORMATS.filter((format) => {
       const matchesSearch =
-        format.extension.toLowerCase().includes(search.toLowerCase()) ||
-        format.name.toLowerCase().includes(search.toLowerCase()) ||
-        format.description.toLowerCase().includes(search.toLowerCase()) ||
-        describeFormat(format, locale).toLowerCase().includes(search.toLowerCase());
+        format.extension.toLowerCase().includes(query) ||
+        format.name.toLowerCase().includes(query) ||
+        format.description.toLowerCase().includes(query) ||
+        describeFormat(format, locale).toLowerCase().includes(query);
 
       const matchesCategory =
         selectedCategory === "all" || format.category === selectedCategory;
@@ -70,9 +71,9 @@ export default function FormatsPage() {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <section className="bg-gradient-to-b from-muted/50 to-background py-12">
+      <section className="bg-gradient-to-b from-muted/50 to-background py-8 sm:py-12">
         <div className="mx-auto max-w-[1200px] px-6 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground">
+          <h1 className="mb-4 text-3xl font-bold tracking-tight wrap-anywhere text-foreground sm:text-4xl">
             {t("formatsTitle")}
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
@@ -82,7 +83,7 @@ export default function FormatsPage() {
       </section>
 
       {/* Filters */}
-      <section className="border-b border-border bg-background py-4 sticky top-16 z-40">
+      <section className="border-b border-border bg-background py-4 sm:sticky sm:top-16 sm:z-40">
         <div className="mx-auto max-w-[1200px] px-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             {/* Search */}
@@ -108,6 +109,7 @@ export default function FormatsPage() {
                     key={category}
                     variant={selectedCategory === category ? "default" : "outline"}
                     size="sm"
+                    aria-pressed={selectedCategory === category}
                     onClick={() => setSelectedCategory(category)}
                     className="h-8"
                   >
@@ -152,24 +154,22 @@ export default function FormatsPage() {
                       </span>
                     </div>
                     <div className="overflow-hidden rounded-lg border border-border">
-                      <Table>
-                        <TableHeader>
+                      <Table role="table" className="block sm:table">
+                        <TableHeader className="hidden sm:table-header-group">
                           <TableRow>
                             <TableHead className="w-24">{t("format")}</TableHead>
                             <TableHead>{t("description")}</TableHead>
                             <TableHead className="w-64">{t("convertsTo")}</TableHead>
                           </TableRow>
                         </TableHeader>
-                        <TableBody>
+                        <TableBody role="rowgroup" className="block sm:table-row-group">
                           {formats.map((format) => (
-                            <TableRow key={format.extension}>
-                              <TableCell>
-                                <FormatBadge
-                                  format={format.extension}
-                                  category={format.category}
-                                />
+                            <TableRow key={format.extension} role="row"
+                              className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 p-3 sm:table-row sm:p-0">
+                              <TableCell role="cell" className="p-0 sm:p-2">
+                                <FormatBadge format={format.extension} />
                               </TableCell>
-                              <TableCell>
+                              <TableCell role="cell" className="p-0 whitespace-normal sm:p-2">
                                 <div>
                                   <p className="font-medium">{format.name}</p>
                                   <p className="text-sm text-muted-foreground">
@@ -177,15 +177,10 @@ export default function FormatsPage() {
                                   </p>
                                 </div>
                               </TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {format.convertTo.map((target) => (
-                                    <FormatBadge
-                                      key={target}
-                                      format={target}
-                                      category={format.category}
-                                    />
-                                  ))}
+                              <TableCell role="cell" className="col-span-2 p-0 sm:p-2">
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <span className="mr-1 text-xs text-muted-foreground sm:hidden">{t("convertsTo")}</span>
+                                  {format.convertTo.map((target) => <FormatBadge key={target} format={target} />)}
                                 </div>
                               </TableCell>
                             </TableRow>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Github } from "lucide-react";
 import { SalpaLogo } from "./SalpaLogo";
 import { useLocale } from "./LocaleProvider";
+import packageInfo from "../../../package.json";
 
 export function Footer() {
   const { t } = useLocale();
@@ -12,8 +13,8 @@ export function Footer() {
       <div className="mx-auto max-w-[1200px] px-6 py-8">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           {/* Logo and description */}
-          <div className="flex flex-col items-center gap-2 md:items-start">
-            <Link href="/" className="flex items-center gap-0">
+          <div className="flex flex-col items-center gap-2 text-center md:items-start md:text-left">
+            <Link href="/" aria-label="Salpa" className="flex items-center gap-0">
               <SalpaLogo size="sm" showText={false} />
               <span className="text-lg font-bold text-primary">alpa</span>
             </Link>
@@ -23,7 +24,7 @@ export function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <Link
               href="/about"
               className="text-sm text-muted-foreground transition-colors duration-150 hover:text-primary"
@@ -57,12 +58,12 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 md:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 text-center md:flex-row md:text-left">
           <p className="text-xs text-muted-foreground">
             {t("sourceProject", { year: new Date().getFullYear() })}
           </p>
           <p className="text-xs text-muted-foreground">
-            {t("version", { value: "1.0.0" })}
+            {t("version", { value: packageInfo.version })}
           </p>
         </div>
       </div>

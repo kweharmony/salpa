@@ -2,28 +2,27 @@ const prefix = 'salpa-offline-';
 const indexCache = prefix + 'index';
 const statePath = '/__salpa_offline_state';
 const pages = new Set(['/', '/formats', '/faq', '/about']);
-let preparation = Promise.resolve();
+let changes = Promise.resolve();
 
 self.addEventListener('install', (event) => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
 async function getState() {
-  const index = await caches.open(indexCache);
-  const saved = await index.match(statePath);
+  const saved = await caches.match(statePath, { cacheName: indexCache });
   return saved?.json();
 }
 
 async function getStatus() {
   const state = await getState();
-  if (!state) return { shell: false, audio: false, video: false };
+  if (!state) return { buildId: null, shell: false, audio: false, video: false };
 
   const matches = await Promise.all(Object.entries(state.groups).map(async ([group, paths]) => {
-    const cache = await caches.open(`${prefix}${state.buildId}-${group}`);
-    const entries = await Promise.all(paths.map((path) => cache.match(path)));
+    const cacheName = `${prefix}${state.buildId}-${group}`;
+    const entries = await Promise.all(paths.map((path) => caches.match(path, { cacheName })));
     return [group, entries.every(Boolean)];
   }));
   const groups = Object.fromEntries(matches);
-  return { shell: !!groups.shell, audio: !!groups.audio, video: !!groups.video };
+  return { buildId: state.buildId, shell: !!groups.shell, audio: !!groups.audio, video: !!groups.video };
 }
 
 async function prepare(selection, report) {
@@ -51,17 +50,39 @@ async function prepare(selection, report) {
           if (!response.ok) throw new Error('offlineSaveFailed');
           await cache.put(path, response);
         }
-        loaded++;
-        report({ loaded, total });
       }));
+      loaded += batch.length;
+      report({ loaded, total });
     }
   }
 
   const index = await caches.open(indexCache);
   await index.put(statePath, Response.json({ buildId, groups: selected }));
-  await Promise.all((await caches.keys()).filter((key) => key.startsWith(prefix) && !kept.has(key))
-    .map((key) => caches.delete(key)));
+  await removeCachesExcept(kept);
   return getStatus();
+}
+
+async function removeCachesExcept(kept) {
+  const obsolete = (await caches.keys()).filter((key) => key.startsWith(prefix) && !kept.has(key));
+  await Promise.all(obsolete.map((key) => caches.delete(key)));
+}
+
+async function clearOffline() {
+  // Сначала отключаем выдачу сохранённой версии, затем освобождаем место.
+  await caches.delete(indexCache);
+  await removeCachesExcept(new Set());
+  return getStatus();
+}
+
+function changeOffline(operation) {
+  const result = changes.then(operation);
+  changes = result.catch(() => undefined);
+  return result.then(async (status) => {
+    for (const client of await self.clients.matchAll({ type: 'window' })) {
+      client.postMessage({ type: 'offline-changed', status });
+    }
+    return status;
+  });
 }
 
 self.addEventListener('message', (event) => {
@@ -72,8 +93,9 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'offline-status') {
     result = getStatus();
   } else if (event.data?.type === 'offline-prepare') {
-    result = preparation.then(() => prepare(event.data.selection, (progress) => port.postMessage({ progress })));
-    preparation = result.catch(() => undefined);
+    result = changeOffline(() => prepare(event.data.selection, (progress) => port.postMessage({ progress })));
+  } else if (event.data?.type === 'offline-clear') {
+    result = changeOffline(clearOffline);
   } else {
     return;
   }
@@ -89,8 +111,8 @@ async function cached(path, groups) {
   if (!state) return undefined;
   for (const group of groups) {
     if (!state.groups[group]?.includes(path)) continue;
-    const cache = await caches.open(`${prefix}${state.buildId}-${group}`);
-    const saved = await cache.match(path);
+    const cacheName = `${prefix}${state.buildId}-${group}`;
+    const saved = await caches.match(path, { cacheName });
     if (saved) return saved;
   }
   return undefined;
@@ -113,7 +135,7 @@ self.addEventListener('fetch', (event) => {
       url.pathname === '/docx-frame.js' ||
       url.pathname === '/favicon.ico') {
     event.respondWith((async () => {
-      // Нормализация экранирования нужна для имён чанков Turbopack.
+      // Нормализация экранирования нужна для имён чанков.
       const path = decodeURIComponent(url.pathname).split('/').map(encodeURIComponent).join('/');
       return await cached(path, ['shell', 'audio', 'video']) ?? fetch(request);
     })());

@@ -87,9 +87,9 @@ const faq = [
     id: "compat-3", category: "compatibility",
     question: ["Нужен ли интернет для работы?", "Do I need an internet connection?", "使用 Salpa 需要联网吗？"],
     answer: [
-      "Подготовьте офлайн-режим на главной. Для аудио и видео заранее выберите соответствующие группы. Очистка данных сайта удаляет офлайн-кэш.",
-      "Prepare offline mode on the home page. To convert audio or video offline, select those groups first. Clearing site data removes the offline cache.",
-      "在首页准备离线模式。若要离线转换音频或视频，请先勾选对应的选项。清除站点数据也会清除离线缓存。",
+      "Пока есть интернет, откройте карточку «Офлайн-режим» на главной и нажмите «Подготовить офлайн-режим». Для аудио и видео заранее отметьте нужные пункты. В карточке можно обновить или удалить сохранённые ресурсы.",
+      "While connected, open Offline mode on the home page and select Prepare offline mode. Select audio or video first if you need them offline. You can update or remove saved resources in the same card.",
+      "联网时，请在首页打开“离线模式”，然后点击“准备离线模式”。如需离线转换音频或视频，请先勾选对应选项。您也可以在此更新或删除已保存的资源。",
     ],
   },
   {

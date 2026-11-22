@@ -53,15 +53,15 @@ export default function Home() {
         />
       )}
 
-      <section className="bg-gradient-to-b from-muted/50 to-background py-12 md:py-16">
+      <section className="bg-gradient-to-b from-muted/50 to-background py-8 sm:py-12 md:py-16">
         <div className="mx-auto max-w-[1200px] px-6 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+          <h1 className="mb-4 text-3xl font-bold tracking-tight wrap-anywhere text-foreground sm:text-4xl md:text-5xl">
             {t("homeTitle")}
           </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto mb-6 max-w-2xl text-lg text-muted-foreground">
             {t("homeIntro")}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+          <div className="hidden flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground sm:flex">
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
               <span>{t("noUpload")}</span>
@@ -78,7 +78,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-8">
+      <section className="py-5 sm:py-8">
         <div className="mx-auto max-w-[1200px] px-6">
           <FileDropzone onFilesAdded={addFiles} disabled={busy} />
           {queue.rejected.length > 0 && (
@@ -95,38 +95,40 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="pb-12">
-        <div className="mx-auto max-w-[1200px] px-6">
-          <BatchSettings
-            files={queue.files}
-            disabled={busy}
-            onApply={(target, options, imagesOnly) => {
-              const count = queue.applyBatchSettings(target, options, imagesOnly);
-              if (count) toast.success(t("settingsApplied", { count }));
-            }}
-          />
-          <FileList
-            files={queue.files}
-            disabled={busy}
-            onRemove={queue.removeFile}
-            onFormatChange={queue.updateFileFormat}
-            onDownload={queue.downloadFile}
-          />
-          <div className="mt-4">
-            <ConversionPanel
+      {queue.files.length > 0 && (
+        <section className="pb-12">
+          <div className="mx-auto max-w-[1200px] px-6">
+            <BatchSettings
               files={queue.files}
-              onConvertAll={async () => reportBatch(await queue.convertAll())}
-              onRetry={async () => reportBatch(await queue.convertAll(true))}
-              onCancel={queue.cancel}
-              onClearAll={queue.clearAll}
-              onDownloadAll={downloadArchive}
-              phase={queue.phase}
-              overallProgress={queue.overallProgress}
-              archiving={archiving}
+              disabled={busy}
+              onApply={(target, options, imagesOnly) => {
+                const count = queue.applyBatchSettings(target, options, imagesOnly);
+                if (count) toast.success(t("settingsApplied", { count }));
+              }}
+            />
+            <div className="mb-4">
+              <ConversionPanel
+                files={queue.files}
+                onConvertAll={async () => reportBatch(await queue.convertAll())}
+                onRetry={async () => reportBatch(await queue.convertAll(true))}
+                onCancel={queue.cancel}
+                onClearAll={queue.clearAll}
+                onDownloadAll={downloadArchive}
+                phase={queue.phase}
+                overallProgress={queue.overallProgress}
+                archiving={archiving}
+              />
+            </div>
+            <FileList
+              files={queue.files}
+              disabled={busy}
+              onRemove={queue.removeFile}
+              onFormatChange={queue.updateFileFormat}
+              onDownload={queue.downloadFile}
             />
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

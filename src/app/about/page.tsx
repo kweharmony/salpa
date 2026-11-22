@@ -13,21 +13,21 @@ export default function AboutPage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-muted/50 to-background py-16 md:py-24">
+      <section className="bg-gradient-to-b from-muted/50 to-background py-10 md:py-24">
         <div className="mx-auto max-w-[1200px] px-6">
           <div className="flex flex-col items-center gap-8 md:flex-row md:items-start md:gap-12">
             {/* Salpa illustration */}
-            <div className="flex-shrink-0">
-              <div className="flex h-48 w-48 items-center justify-center rounded-full bg-primary/10">
-                <div className="scale-[2.5]">
+            <div className="shrink-0">
+              <div className="flex size-32 items-center justify-center rounded-full bg-primary/10 md:size-48">
+                <div className="scale-[1.8] md:scale-[2.5]">
                   <SalpaLogo size="lg" showText={false} />
                 </div>
               </div>
             </div>
 
             {/* Text content */}
-            <div className="text-center md:text-left">
-              <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+            <div className="min-w-0 text-center md:text-left">
+              <h1 className="mb-4 text-3xl font-bold tracking-tight wrap-anywhere text-foreground sm:text-4xl md:text-5xl">
                 <span className="text-primary">Salpa</span> {t("aboutTitle")}
               </h1>
               <p className="max-w-2xl text-lg text-muted-foreground">
@@ -39,7 +39,7 @@ export default function AboutPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16">
+      <section className="py-10 md:py-16">
         <div className="mx-auto max-w-[1200px] px-6">
           <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             {t("aboutFeatures")}
@@ -65,7 +65,7 @@ export default function AboutPage() {
       </section>
 
       {/* How it works Section */}
-      <section className="bg-muted/30 py-16">
+      <section className="bg-muted/30 py-10 md:py-16">
         <div className="mx-auto max-w-[1200px] px-6">
           <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             {t("howItWorks")}
@@ -120,7 +120,7 @@ export default function AboutPage() {
       </section>
 
       {/* Tech Stack Section */}
-      <section className="py-16">
+      <section className="py-10 md:py-16">
         <div className="mx-auto max-w-[1200px] px-6">
           <h2 className="mb-8 text-center text-3xl font-bold text-foreground">
             {t("technologies")}
@@ -159,7 +159,7 @@ export default function AboutPage() {
       </section>
 
       {/* Open Source Section */}
-      <section className="bg-primary py-16 text-primary-foreground">
+      <section className="bg-primary py-10 text-primary-foreground md:py-16">
         <div className="mx-auto max-w-[1200px] px-6 text-center">
           <Github className="mx-auto mb-4 h-12 w-12" />
           <h2 className="mb-4 text-3xl font-bold">{t("openSource")}</h2>

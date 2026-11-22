@@ -1,16 +1,10 @@
 "use client";
 
-import { useLocale } from "@/components/layout/LocaleProvider";
-
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-interface FormatBadgeProps {
-  format: string;
-  category?: "image" | "document" | "audio" | "video";
-  className?: string;
-}
+import { useLocale } from "@/components/layout/LocaleProvider";
+import { Badge } from "@/components/ui/badge";
+import { getFormatInfo } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const categoryColors = {
   image: "bg-blue-100 text-blue-700 hover:bg-blue-200",
@@ -19,25 +13,26 @@ const categoryColors = {
   video: "bg-orange-100 text-orange-700 hover:bg-orange-200",
 };
 
-export function FormatBadge({ format, category, className }: FormatBadgeProps) {
+export function FormatBadge({ format }: { format: string }) {
   const { t } = useLocale();
-  const handleClick = () => {
-    navigator.clipboard.writeText(format.toUpperCase());
-    toast.success(t("copied", { value: format.toUpperCase() }));
-  };
+  const label = format.toUpperCase();
+  const category = getFormatInfo(format)?.category;
+  const copyLabel = t("copyFormat", { value: label });
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(label);
+      toast.success(t("copied", { value: label }));
+    } catch {
+      toast.error(t("copyFailed"));
+    }
+  }
 
   return (
-    <Badge
-      variant="secondary"
-      className={cn(
-        "cursor-pointer transition-colors duration-150",
-        category && categoryColors[category],
-        className
-      )}
-      title={t("copyFormat", { value: format.toUpperCase() })}
-      onClick={handleClick}
-    >
-      {format.toUpperCase()}
+    <Badge asChild variant="secondary" className={cn("cursor-pointer", category && categoryColors[category])}>
+      <button type="button" aria-label={copyLabel} title={copyLabel} onClick={copy}>
+        {label}
+      </button>
     </Badge>
   );
 }

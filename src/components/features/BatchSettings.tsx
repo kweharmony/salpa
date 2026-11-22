@@ -21,7 +21,7 @@ const profiles = {
 
 type Profile = keyof typeof profiles;
 
-const fieldClass = "h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm";
+const fieldClass = "h-10 w-full min-w-0 rounded-md border border-input bg-background px-2 text-base sm:h-9 sm:text-sm";
 
 export function BatchSettings({ files, disabled, onApply }: BatchSettingsProps) {
   const { t } = useLocale();
@@ -64,7 +64,7 @@ export function BatchSettings({ files, disabled, onApply }: BatchSettingsProps) 
 
   return (
     <form
-      className="mb-4 space-y-3 rounded-lg border bg-card p-4"
+      className="mb-4 min-w-0 space-y-3 rounded-lg border bg-card p-3 sm:p-4"
       onSubmit={(event) => {
         event.preventDefault();
         onApply(selectedTarget, {
@@ -77,7 +77,7 @@ export function BatchSettings({ files, disabled, onApply }: BatchSettingsProps) 
       }}
       aria-label={t("batchSettings")}
     >
-      <fieldset disabled={disabled} className="space-y-3 disabled:opacity-60">
+      <fieldset disabled={disabled} className="min-w-0 space-y-3 disabled:opacity-60">
         <legend className="mb-3 text-sm font-semibold">{t("batchSettings")}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -156,7 +156,7 @@ export function BatchSettings({ files, disabled, onApply }: BatchSettingsProps) 
         )}
         <div className="flex flex-wrap gap-2">
           <Button type="submit" size="sm" variant="secondary">{t("applySettings")}</Button>
-          {hasImages && <Button type="button" size="sm" variant="outline" onClick={applyPhotoPreset}>{t("photoPreset")}</Button>}
+          {hasImages && <Button type="button" size="sm" variant="outline" className="h-auto min-h-8 max-w-full whitespace-normal" onClick={applyPhotoPreset}>{t("photoPreset")}</Button>}
         </div>
         {hasImages && <p className="text-sm text-muted-foreground">{t("photoPresetHint")}</p>}
       </fieldset>

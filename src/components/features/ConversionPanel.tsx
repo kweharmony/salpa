@@ -60,7 +60,7 @@ export function ConversionPanel({
           <Button variant="outline" onClick={onCancel}>{t("stop")}</Button>
         )}
         {downloadable && (
-          <Button variant="secondary" onClick={onDownloadAll} disabled={archiving}>
+          <Button variant="secondary" onClick={onDownloadAll} disabled={archiving} className="h-auto min-h-9 max-w-full whitespace-normal">
             <Download className="h-4 w-4" />
             {t(archiving ? "zipping" : "downloadZip")}
           </Button>

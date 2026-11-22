@@ -81,14 +81,15 @@ async function wordXml(bytes: Uint8Array) {
   }
 }
 
-test('DOCX preview prints both pages with Cyrillic, a table and a header', async ({ page, context }, testInfo) => {
+test('DOCX preview fits a phone and prints both pages with Cyrillic, a table and a header', async ({ page, context }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 700 });
   await page.goto('/');
   await page.locator('#file-input').setInputFiles({
     name: 'заказ.docx', mimeType: wordMime, buffer: await wordExample(),
   });
   await page.getByRole('button', { name: 'Конвертировать' }).click();
   await expect(row(page, 'заказ.docx').getByText('Готово к печати')).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByRole('button', { name: /Скачать готовое ZIP/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Скачать ZIP/ })).toHaveCount(0);
 
   await row(page, 'заказ.docx').getByRole('button', { name: 'Печать в PDF' }).click();
   const preview = page.frameLocator('iframe[title="Страницы документа"]');
@@ -98,6 +99,16 @@ test('DOCX preview prints both pages with Cyrillic, a table and a header', async
   await expect(preview.getByText('Salpa / контрольный пример').first()).toBeVisible();
 
   const iframe = page.locator('iframe[title="Страницы документа"]');
+  await expect.poll(() => iframe.evaluate((element) => {
+    const root = (element as HTMLIFrameElement).contentDocument!.documentElement;
+    return root.scrollWidth <= root.clientWidth + 1;
+  })).toBe(true);
+  await page.setViewportSize({ width: 667, height: 375 });
+  const printButton = page.getByRole('button', { name: 'Печать и сохранение' });
+  expect(await printButton.evaluate((button) => {
+    const bounds = button.getBoundingClientRect();
+    return bounds.right <= innerWidth && bounds.bottom <= innerHeight;
+  })).toBe(true);
   await iframe.evaluate((element) => {
     const frame = element as HTMLIFrameElement;
     frame.contentWindow!.print = () => frame.setAttribute('data-print-called', 'true');
@@ -203,7 +214,7 @@ test('offline DOCX renders and PDF pages become a JPG archive', async ({ page, c
   await expect(page.getByText(/Готово к работе без интернета/)).toBeVisible({ timeout: 45_000 });
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('Офлайн-режим · готов', { exact: true })).toBeVisible();
+  await expect(page.getByText('Готов к работе', { exact: true })).toBeVisible();
   await page.locator('#file-input').setInputFiles([
     { name: 'pages.pdf', mimeType: 'application/pdf', buffer: await textPdf() },
     { name: 'офлайн.docx', mimeType: wordMime, buffer: await wordExample() },

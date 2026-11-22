@@ -4,7 +4,6 @@ import { useLocale } from "@/components/layout/LocaleProvider";
 
 import { FileRow } from "./FileRow";
 import { ConvertibleFile } from "@/lib/types";
-import { FileX } from "lucide-react";
 
 interface FileListProps {
   files: ConvertibleFile[];
@@ -16,19 +15,7 @@ interface FileListProps {
 
 export function FileList({ files, disabled, onRemove, onFormatChange, onDownload }: FileListProps) {
   const { t } = useLocale();
-  if (files.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="mb-4 rounded-full bg-muted p-4">
-          <FileX className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <p className="text-lg font-medium text-foreground">{t("noFiles")}</p>
-        <p className="text-sm text-muted-foreground">
-          {t("addFilesHint")}
-        </p>
-      </div>
-    );
-  }
+  if (files.length === 0) return null;
 
   return (
     <div role="list" aria-label={t("queue")} className="overflow-hidden rounded-lg border border-border bg-card">

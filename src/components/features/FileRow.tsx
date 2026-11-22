@@ -76,19 +76,17 @@ export function FileRow({ file, disabled, onRemove, onFormatChange, onDownload }
       role="listitem"
       aria-label={file.name}
       className={cn(
-        "group flex flex-col gap-3 border-b border-border p-4 transition-colors duration-150",
-        "hover:bg-muted/50",
-        "md:flex-row md:items-center"
+        "flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border p-3 transition-colors hover:bg-muted/50 sm:p-4"
       )}
     >
       {/* File info */}
-      <div className="flex flex-1 items-center gap-3">
+      <div className="flex w-full min-w-0 items-center gap-3 md:w-auto md:flex-1">
         <div className="rounded-lg bg-muted p-2">
           {getFileIcon(file.category)}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-foreground">{file.name}</p>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <p className="truncate font-medium text-foreground" title={file.name}>{file.name}</p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
             <span>{formatFileSize(file.size)}{result?.kind === "download" && ` → ${formatFileSize(result.blob.size)}`}</span>
             <span>•</span>
             <span className="uppercase">{file.sourceFormat}</span>
@@ -135,7 +133,7 @@ export function FileRow({ file, disabled, onRemove, onFormatChange, onDownload }
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
         {result?.kind === "download" && (
           <Button
             variant="default"
@@ -161,7 +159,7 @@ export function FileRow({ file, disabled, onRemove, onFormatChange, onDownload }
           size="icon"
           onClick={() => onRemove(file.id)}
           disabled={disabled}
-          className="opacity-50 transition-opacity group-hover:opacity-100"
+          className="text-muted-foreground hover:text-foreground"
           aria-label={t("removeFile", { name: file.name })}
         >
           <X className="h-4 w-4" />

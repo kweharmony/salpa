@@ -21,10 +21,11 @@ export default function FAQPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const filteredFAQ = useMemo(() => {
+    const query = search.trim().toLowerCase();
     return questions.filter((item) => {
       const matchesSearch =
-        item.question.toLowerCase().includes(search.toLowerCase()) ||
-        item.answer.toLowerCase().includes(search.toLowerCase());
+        item.question.toLowerCase().includes(query) ||
+        item.answer.toLowerCase().includes(query);
 
       const matchesCategory =
         selectedCategory === "all" || item.category === selectedCategory;
@@ -51,9 +52,9 @@ export default function FAQPage() {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <section className="bg-gradient-to-b from-muted/50 to-background py-12">
+      <section className="bg-gradient-to-b from-muted/50 to-background py-8 sm:py-12">
         <div className="mx-auto max-w-[1200px] px-6 text-center">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground">
+          <h1 className="mb-4 text-3xl font-bold tracking-tight wrap-anywhere text-foreground sm:text-4xl">
             {t("faqTitle")}
           </h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
@@ -63,7 +64,7 @@ export default function FAQPage() {
       </section>
 
       {/* Search */}
-      <section className="border-b border-border bg-background py-4 sticky top-16 z-40">
+      <section className="border-b border-border bg-background py-4 sm:sticky sm:top-16 sm:z-40">
         <div className="mx-auto max-w-[800px] px-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -88,6 +89,7 @@ export default function FAQPage() {
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
                 size="sm"
+                aria-pressed={selectedCategory === category.id}
                 onClick={() => setSelectedCategory(category.id)}
                 className={cn(
                   selectedCategory !== category.id && "hover:bg-primary/10 hover:text-primary hover:border-primary/50"

@@ -107,8 +107,8 @@ git remote add upstream https://github.com/kweharmony/salpa.git
 ```bash
 # Синхронизируйте с upstream
 git fetch upstream
-git checkout main
-git merge upstream/main
+git checkout master
+git merge upstream/master
 
 # Создайте feature ветку
 git checkout -b feature/new-format-support
@@ -458,7 +458,7 @@ Related to #456
 ### 3. Code Review
 
 После создания PR:
-1. Автоматически запустятся проверки (lint, build)
+1. GitHub Actions запустит ESLint, модульные тесты, сборку и браузерные тесты Playwright
 2. Мейнтейнеры проведут code review
 3. Внесите правки, если требуется
 4. После одобрения PR будет смержен

@@ -51,7 +51,7 @@ test('a partial batch downloads successful files and retries only failed jobs', 
   await expect(page.getByText('Готово 1 из 2')).toBeVisible();
   await expect(entry(page, 'broken.json').getByText('Невалидный JSON')).toBeVisible();
 
-  const zip = await download(page, page.getByRole('button', { name: 'Скачать готовое ZIP-архивом' }));
+  const zip = await download(page, page.getByRole('button', { name: 'Скачать ZIP' }));
   expect(zip.name).toBe('Salpa.zip');
   const reader = new ZipReader(new Uint8ArrayReader(zip.data));
   expect((await reader.getEntries()).map((item) => item.filename)).toEqual(['note.json']);
@@ -104,7 +104,7 @@ test('prepared audio and video work offline, with copy and transcode paths', asy
   await page.goto('/formats');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.goto('/');
-  await expect(page.getByText('Офлайн-режим · готов', { exact: true })).toBeVisible();
+  await expect(page.getByText('Готов к работе', { exact: true })).toBeVisible();
   await page.locator('#file-input').setInputFiles([
     { name: 'tone.wav', mimeType: 'audio/wav', buffer: sineWave() },
     { name: 'h264.mkv', mimeType: 'video/x-matroska', buffer: await readFile(fixture('h264.mkv')) },
